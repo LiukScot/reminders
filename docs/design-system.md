@@ -1,31 +1,30 @@
 # Design system
 
-## Linguaggio
+## Language
 
-Material Design 3 (Material You), implementato nativamente via Jetpack Compose
+Material Design 3 (Material You), implemented natively via Jetpack Compose
 (`androidx.compose.material3`).
 
-## Colore
+## Color
 
-- Colore primario: arancione.
-- Palette generata dal colore seed tramite lo schema Material 3 (primary,
-  on-primary, primary-container, ecc. derivati automaticamente, non scelti a mano
-  uno per uno).
-- **Dynamic color (Material You)**: rimandato a dopo l'MVP. Quando attivato, la
-  palette non parte più dall'arancione fisso ma da `dynamicColorScheme()`, che la
-  genera dal wallpaper dell'utente (Android 12+, fallback alla palette arancione sui
-  dispositivi che non lo supportano o su Android più vecchio).
+- Primary color: orange.
+- Palette generated from the seed color via the Material 3 scheme (primary,
+  on-primary, primary-container, etc. derived automatically, not hand-picked one
+  by one).
+- **Dynamic color (Material You)**: deferred to after the MVP. Once enabled, the
+  palette no longer starts from the fixed orange but from `dynamicColorScheme()`,
+  which generates it from the user's wallpaper (Android 12+, falls back to the
+  orange palette on devices that don't support it or on older Android).
 
-## Tipografia, forme, componenti
+## Typography, shapes, components
 
-Si usa la scala tipografica e le forme (angoli arrotondati, elevazioni) di default di
-Material 3 — nessuna personalizzazione finché non emerge un motivo concreto per
-cambiarle.
+Using Material 3's default type scale and shapes (rounded corners, elevations) —
+no customization until a concrete reason to change them emerges.
 
-## Da definire più avanti
+## To define later
 
-- Dark mode: Material 3 lo gestisce di default con schemi colore separati
-  (light/dark), da verificare solo se emergono problemi di contrasto con l'arancione
-  scelto.
-- Icone: set da scegliere (Material Symbols è l'opzione di default, coerente con il
-  resto).
+- Dark mode: Material 3 handles it by default with separate color schemes
+  (light/dark), to be checked only if contrast issues emerge with the chosen
+  orange.
+- Icons: icon set to be chosen (Material Symbols is the default option, consistent
+  with the rest).

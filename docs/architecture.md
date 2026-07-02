@@ -1,34 +1,34 @@
-# Architettura tecnica
+# Technical architecture
 
-## Linguaggio e UI
+## Language and UI
 
-- **Kotlin**, unico linguaggio del progetto.
-- **Jetpack Compose** per tutta la UI — nessuna View/XML legacy.
-- Material 3 (`androidx.compose.material3`) come libreria di componenti — vedi
-  [design-system.md](design-system.md) per il tema.
+- **Kotlin**, the project's only language.
+- **Jetpack Compose** for all UI — no legacy View/XML.
+- Material 3 (`androidx.compose.material3`) as the component library — see
+  [design-system.md](design-system.md) for the theme.
 
-## Dati
+## Data
 
-- **Solo storage locale** per ora (deciso in [requirements.md](requirements.md)),
-  niente backend/sync multi-dispositivo.
-- Persistenza: **Room** (libreria ufficiale AndroidX sopra SQLite) — standard de
-  facto per storage locale strutturato su Android, nessun motivo per scrivere un
-  wrapper SQLite a mano o introdurre un DB esterno per un'app mono-utente offline.
-- Conseguenza pratica: serve una feature di export/backup manuale (vedi
-  [features.md](features.md) → "Dati e backup") perché senza cloud sync i dati
-  vivono solo sul dispositivo.
+- **Local storage only** for now (decided in [requirements.md](requirements.md)),
+  no backend/multi-device sync.
+- Persistence: **Room** (official AndroidX library on top of SQLite) — the de
+  facto standard for structured local storage on Android, no reason to hand-write
+  a SQLite wrapper or bring in an external DB for a single-user offline app.
+- Practical consequence: a manual export/backup feature is needed (see
+  [features.md](features.md) → "Data and backup") because without cloud sync the
+  data lives only on the device.
 
-## Voce / AI
+## Voice / AI
 
-- Gemini API per voice-to-task (audio → JSON strutturato titolo/data/ora/ricorrenza),
-  motivazione completa in [requirements.md](requirements.md).
-- Chiamata diretta dall'app al momento; da rivalutare se serve un layer di
-  backend/proxy (es. per non esporre l'API key nel client — **punto da approfondire
-  prima di scrivere il codice della feature voce**, non ancora deciso).
+- Gemini API for voice-to-task (audio → structured JSON with title/date/time/
+  recurrence), full reasoning in [requirements.md](requirements.md).
+- Called directly from the app for now; to be reevaluated if a backend/proxy layer
+  is needed (e.g. to avoid exposing the API key in the client — **point to
+  investigate before writing the voice feature's code**, not yet decided).
 
-## Da definire più avanti
+## To define later
 
-- Struttura moduli (single-module vs multi-module Gradle) — rimandato: con un'app di
-  queste dimensioni un singolo modulo `app` basta finché non diventa scomodo.
-- Dependency injection: valutare se serve Hilt o se basta injection manuale data la
-  scala del progetto.
+- Module structure (single-module vs multi-module Gradle) — deferred: for an app
+  of this size a single `app` module is enough until it becomes inconvenient.
+- Dependency injection: evaluate whether Hilt is needed or manual injection is
+  enough given the project's scale.

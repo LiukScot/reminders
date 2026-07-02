@@ -1,83 +1,86 @@
-# Mappa feature Apple Reminders
+# Apple Reminders feature map
 
-Checklist di tutto quello che fa Apple Reminders, con proposta di priorità.
-`[MVP]` = necessario per la prima versione usabile, `[v2]` = aggiungibile dopo,
-`[skip]` = deliberatamente escluso con motivo.
+Checklist of everything Apple Reminders does, with a proposed priority.
+`[MVP]` = needed for the first usable version, `[v2]` = addable later,
+`[skip]` = deliberately excluded with a reason.
 
-## Organizzazione
+## Organization
 
-- [MVP] Liste — contenitore base dei task
-- [MVP] Sotto-task (subtask annidati sotto un reminder)
-- [v2] Cartelle — raggruppano più liste (utile solo quando le liste diventano tante)
-- [v2] Gruppi di liste in sidebar — Apple li tiene distinti dalle cartelle, si copia
-  questa separazione per ora; se in uso risultano ridondanti si valuta unirli dopo
-- [MVP] Tag — cross-lista, per ritrovare task senza dipendere dalla lista in cui sono
-- [MVP] Priorità (bassa/media/alta)
-- [MVP] Flag — asse di importanza separato dalla priorità (es. priorità = urgenza,
-  flag = "guarda qui"), tenuto come feature distinta
-- [MVP] Smart list predefinite: Oggi, Programmati, Flaggati, Tutti, Completati
-- [v2] Smart list custom (filtri combinati: tag + data + priorità + posizione)
-- [v2] Sezioni dentro una lista (stile colonne To Do / In corso / Fatto) — utile per
-  progetti, meno per reminder quotidiani; verificare se ti serve davvero
-- [v2] Vista a colonna (kanban) per le sezioni
+- [MVP] Lists — base container for tasks
+- [MVP] Sub-tasks (nested under a reminder)
+- [v2] Folders — group multiple lists (only useful once lists become numerous)
+- [v2] List groups in the sidebar — Apple keeps them distinct from folders, this
+  separation is copied for now; if they turn out redundant in practice, consider
+  merging them later
+- [MVP] Tags — cross-list, to find tasks without depending on which list they're in
+- [MVP] Priority (low/medium/high)
+- [MVP] Flag — an importance axis separate from priority (e.g. priority = urgency,
+  flag = "look here"), kept as a distinct feature
+- [MVP] Default smart lists: Today, Scheduled, Flagged, All, Completed
+- [v2] Custom smart lists (combined filters: tag + date + priority + location)
+- [v2] Sections within a list (To Do / In Progress / Done style columns) — useful
+  for projects, less so for daily reminders; verify if actually needed
+- [v2] Column (kanban) view for sections
 
-## Date e ricorrenza
+## Dates and recurrence
 
-- [MVP] Data/ora di scadenza + notifica
-- [MVP] Ricorrenza (giornaliera/settimanale/mensile/custom)
-- [MVP] Reminder basati su posizione (arrivo/partenza da un luogo — richiede permessi
-  GPS always-on, consumo batteria da monitorare, va gestito con attenzione)
-- [skip] Reminder basati su contatto (si attiva quando messaggi una persona) — feature
-  di nicchia, integrazione profonda col sistema di messaggistica iOS che su Android
-  non ha un equivalente diretto e pulito
+- [MVP] Due date/time + notification
+- [MVP] Recurrence (daily/weekly/monthly/custom)
+- [MVP] Location-based reminders (arriving/leaving a place — requires always-on GPS
+  permissions, battery usage to monitor, needs careful handling)
+- [skip] Contact-based reminders (triggers when messaging a person) — niche feature,
+  deep integration with iOS's messaging system that has no clean direct equivalent
+  on Android
 
-## Contenuto
+## Content
 
-- [MVP] Note/descrizione testuale sul task
-- [v2] Allegati (foto, scansione documenti, link)
-- [skip] Integrazione con app Note — non hai un'app Note propria, verrebbe scollegato
-  da tutto; riconsiderare solo se costruisci anche quella
+- [MVP] Text notes/description on the task
+- [v2] Attachments (photos, document scans, links)
+- [skip] Notes app integration — there's no dedicated Notes app in this project, it
+  would be disconnected from everything; reconsider only if that app gets built too
 
-## Collaborazione
+## Collaboration
 
-- [skip] Liste condivise multi-utente con aggiornamento realtime — deciso: **solo
-  storage locale per ora**, niente backend/sync multi-dispositivo. Da riconsiderare
-  se in futuro serve sync (a quel punto questa feature torna in gioco)
-- [skip] Assegnazione task a un altro utente ("Assigned to Me") — dipende dal punto
-  sopra, stesso motivo
+- [skip] Multi-user shared lists with realtime updates — decision: **local storage
+  only for now**, no backend/multi-device sync. Reconsider if sync becomes needed
+  later (at that point this feature is back on the table)
+- [skip] Assigning tasks to another user ("Assigned to Me") — depends on the point
+  above, same reason
 
-## Dati e backup
+## Data and backup
 
-- [MVP] Export/backup locale (es. file JSON su storage del telefono) — **attenzione**:
-  con solo storage locale, se perdi/rompi il telefono perdi tutti i reminder. Senza
-  sync cloud serve almeno un modo manuale di fare backup/ripristino, altrimenti è un
-  rischio reale di perdita dati che Apple Reminders (con iCloud) non ha
-- [v2] Import da altre app (CSV/JSON) — utile se un giorno migri da TickTick/altro
+- [MVP] Local export/backup (e.g. JSON file on phone storage) — **caution**: with
+  local-only storage, losing/breaking the phone means losing all reminders. Without
+  cloud sync there needs to be at least a manual backup/restore path, otherwise
+  there's a real risk of data loss that Apple Reminders (with iCloud) doesn't have
+- [v2] Import from other apps (CSV/JSON) — useful if migrating from TickTick/other
+  someday
 
 ## AI / smart
 
-- [MVP] Linguaggio naturale nel titolo → data/ora/ricorrenza (già in requirements.md)
-- [MVP] Voce → task strutturato via Gemini API (già deciso)
-- [v2] Auto-categorizzazione ML (mette da solo un task in "Lavoro"/"Personale"/
-  "Spesa" in base a parole chiave) — carino ma non essenziale, e con l'NLU via Gemini
-  potresti ottenerlo quasi gratis chiedendo anche la categoria nello stesso prompt
-  invece di costruire un classificatore separato
-- [v2] Liste della spesa con raggruppamento automatico per reparto (latticini,
-  ortofrutta...) — stesso discorso: se hai già Gemini in mezzo, chiediglielo nel
-  prompt invece di un sistema dedicato
+- [MVP] Natural language in the title → date/time/recurrence (already in
+  requirements.md)
+- [MVP] Voice → structured task via Gemini API (already decided)
+- [v2] ML auto-categorization (automatically puts a task in "Work"/"Personal"/
+  "Groceries" based on keywords) — nice but not essential, and with NLU already
+  going through Gemini this could come almost free by also asking for the category
+  in the same prompt instead of building a separate classifier
+- [v2] Grocery lists with automatic grouping by department (dairy, produce...) —
+  same reasoning: with Gemini already in the loop, ask it in the prompt instead of
+  a dedicated system
 
-## Altro
+## Other
 
-- [MVP] Ricerca full-text su tutti i reminder
-- [MVP] Widget home screen (lista di oggi)
-- [skip] Siri / assistente esterno — deciso in requirements.md: nessun assistente di
-  sistema affidabile, si usa il microfono in-app
+- [MVP] Full-text search across all reminders
+- [MVP] Home screen widget (today's list)
+- [skip] Siri / external assistant — decided in requirements.md: no reliable system
+  assistant, in-app microphone is used instead
 
-## Deciso in questa iterazione
+## Decided in this iteration
 
-- Sync: solo storage locale per ora, niente backend (vedi "Dati e backup" per il
-  rischio di perdita dati che questo comporta)
-- Flag: tenuto come feature MVP separata da Priorità
-- Reminder basati su posizione: promossi a MVP
-- Cartelle e Gruppi di liste: si copiano entrambi come fa Apple, si personalizza dopo
-  se in uso risultano ridondanti
+- Sync: local storage only for now, no backend (see "Data and backup" for the data
+  loss risk this implies)
+- Flag: kept as a separate MVP feature from Priority
+- Location-based reminders: promoted to MVP
+- Folders and List groups: both copied as Apple does, customize later if they turn
+  out redundant in practice

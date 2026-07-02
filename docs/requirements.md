@@ -1,59 +1,58 @@
-# Requisiti
+# Requirements
 
-## Contesto
+## Context
 
-Obiettivo: un'esperienza simile a Apple Reminders su Android, con personalizzazione
-e input vocale AI. Prima di scrivere codice è stata fatta una ricerca su alternative
-esistenti (Todoist, TickTick, Any.do, Vikunja, Tasks.org) — nessuna soddisfa insieme
-i requisiti sotto, quindi si costruisce da zero.
+Goal: an experience similar to Apple Reminders on Android, with customization
+and AI voice input. Before writing any code, research was done into existing
+alternatives (Todoist, TickTick, Any.do, Vikunja, Tasks.org) — none satisfy the
+requirements below all at once, hence building from scratch.
 
-Punti emersi dalla ricerca che hanno guidato le scelte:
-- Google Assistant è in dismissione (marzo 2026), sostituito da Gemini — Gemini
-  supporta solo una lista chiusa di app collegate ("Connected Apps"), non MCP generico.
-- Nessuna app third-party è collegabile come assistente vocale di sistema su
-  Wear OS/Pixel Watch in modo verificato.
-- TickTick ha un MCP ufficiale gratuito (`mcp.ticktick.com`) ma l'interfaccia e le
-  automazioni (es. riconoscimento smart di data/ora) sono limitate e in inglese.
-- Vikunja (self-hosted, MCP community) risolve il paywall ma l'interfaccia non
-  soddisfa.
+Findings from the research that shaped the choices:
+- Google Assistant is being discontinued (March 2026), replaced by Gemini — Gemini
+  only supports a closed list of linked apps ("Connected Apps"), not generic MCP.
+- No third-party app can be reliably registered as the system voice assistant on
+  Wear OS/Pixel Watch.
+- TickTick has an official free MCP (`mcp.ticktick.com`) but the interface and
+  automations (e.g. smart date/time recognition) are limited and English-only.
+- Vikunja (self-hosted, community MCP) solves the paywall issue but the interface
+  isn't satisfactory.
 
-Conclusione: dato che nessun assistente di sistema è raggiungibile in modo affidabile,
-l'input vocale va implementato **dentro l'app** (microfono in-app), non tramite
-integrazione con Siri/Gemini esterni.
+Conclusion: since no system assistant can be reliably reached, voice input must be
+implemented **inside the app** (in-app microphone), not through integration with
+external Siri/Gemini assistants.
 
-## Viste
+## Views
 
-- **Vista giorno**: fasce mattina / pomeriggio / sera, drag&drop dei task tra fasce.
-- **Vista settimana**: drag&drop dei task tra giorni.
-- Altre feature di Apple Reminders: da mappare una per una (liste, tag, priorità,
-  sub-task, allegati, posizione geografica, condivisione — verificare quali servono
-  davvero prima di implementarle).
+- **Day view**: morning / afternoon / evening slots, drag&drop tasks between slots.
+- **Week view**: drag&drop tasks between days.
+- Other Apple Reminders features: to be mapped one by one (lists, tags, priority,
+  sub-tasks, attachments, geolocation, sharing — verify which are actually needed
+  before implementing them).
 
-## Linguaggio naturale
+## Natural language
 
-- Parsing smart di data/ora/ricorrenza dal testo del titolo.
-- Priorità: italiano prima, inglese poi.
+- Smart parsing of date/time/recurrence from the title text.
+- Priority: Italian first, English second.
 
-## Voce
+## Voice
 
-- Nessun assistente di sistema (Siri/Gemini) raggiungibile in modo affidabile →
-  microfono in-app.
-- **Scelta**: Gemini API (audio → JSON strutturato con titolo/data/ora/ricorrenza
-  in un'unica chiamata), free tier per uso personale.
-- Alternativa scartata per ora: self-hosting di un modello piccolo (es. Whisper) —
-  richiederebbe due pipeline separate (trascrizione + parsing NLU) da mantenere,
-  overkill per un'app mono-utente. Da riconsiderare solo se emergono problemi di
-  privacy o costi.
+- No system assistant (Siri/Gemini) can be reliably reached → in-app microphone.
+- **Choice**: Gemini API (audio → structured JSON with title/date/time/recurrence
+  in a single call), free tier for personal use.
+- Alternative discarded for now: self-hosting a small model (e.g. Whisper) —
+  would require two separate pipelines (transcription + NLU parsing) to maintain,
+  overkill for a single-user app. Reconsider only if privacy or cost issues emerge.
 
 ## Design
 
 - Material Design (Android), Material 3.
-- Colore base: arancione.
-- Dynamic color (Material You) da sistema — feature futura, non nel primo giro.
+- Base color: orange.
+- Dynamic color (Material You) from the system — future feature, not in the first
+  iteration.
 
-## Stack tecnico
+## Tech stack
 
-- Kotlin + Jetpack Compose, nativo Android (no Flutter/React Native).
-- Motivo: Material You dynamic color è API nativa Compose; drag&drop più diretto;
-  nessun plugin cross-platform da mantenere. Trade-off accettato: se in futuro serve
-  iOS, si riparte da zero su quella piattaforma.
+- Kotlin + Jetpack Compose, native Android (no Flutter/React Native).
+- Reason: Material You dynamic color is a native Compose API; drag&drop is more
+  direct; no cross-platform plugin to maintain. Accepted trade-off: if iOS is
+  needed in the future, it starts from scratch on that platform.
