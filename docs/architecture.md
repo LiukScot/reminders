@@ -9,8 +9,11 @@
 
 ## Data
 
-- **Local storage only** for now (decided in [requirements.md](requirements.md)),
-  no backend/multi-device sync.
+- **Local storage only** for v1 (decided in [requirements.md](requirements.md)),
+  no backend/multi-device sync. A self-hosted webapp with a local/server sync
+  toggle is planned for v2 (see [features.md](features.md) → "Collaboration") —
+  not yet designed, avoid modeling the local store in a way that assumes a
+  particular sync protocol until that's scoped.
 - Persistence: **Room** (official AndroidX library on top of SQLite) — the de
   facto standard for structured local storage on Android, no reason to hand-write
   a SQLite wrapper or bring in an external DB for a single-user offline app.

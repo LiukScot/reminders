@@ -25,7 +25,14 @@ Checklist of everything Apple Reminders does, with a proposed priority.
 ## Dates and recurrence
 
 - [MVP] Due date/time + notification
-- [MVP] Recurrence (daily/weekly/monthly/custom)
+- [MVP] Notification snooze — quick delay (e.g. 1h) and "smart" delay
+  (context-aware: a morning reminder snoozed goes to afternoon, an afternoon
+  one to evening, mirroring iOS's smart snooze)
+- [MVP] Recurrence (daily/weekly/monthly/custom) — rescheduling a single
+  occurrence (changing its date/time) only moves that occurrence, it does not
+  shift the recurrence rule. E.g. a "every Thursday 10am" reminder rescheduled
+  to Friday still fires the following Thursday at 10am, not Friday (behavior
+  copied from Google Tasks)
 - [MVP] Location-based reminders (arriving/leaving a place — requires always-on GPS
   permissions, battery usage to monitor, needs careful handling)
 - [skip] Contact-based reminders (triggers when messaging a person) — niche feature,
@@ -41,9 +48,13 @@ Checklist of everything Apple Reminders does, with a proposed priority.
 
 ## Collaboration
 
-- [skip] Multi-user shared lists with realtime updates — decision: **local storage
-  only for now**, no backend/multi-device sync. Reconsider if sync becomes needed
-  later (at that point this feature is back on the table)
+- [v2] Self-hosted webapp sync — a self-hostable webapp companion, with a
+  per-device setting to use either local-only storage or sync with the
+  user's own self-hosted server. Single-user (this device ↔ the user's own
+  server), not multi-user sharing — see the skip below for that
+- [skip] Multi-user shared lists with realtime updates — different problem
+  from self-hosted sync above (this is about other people accessing the same
+  list, not one user's own devices). Reconsider if it becomes needed later
 - [skip] Assigning tasks to another user ("Assigned to Me") — depends on the point
   above, same reason
 
@@ -78,8 +89,11 @@ Checklist of everything Apple Reminders does, with a proposed priority.
 
 ## Decided in this iteration
 
-- Sync: local storage only for now, no backend (see "Data and backup" for the data
-  loss risk this implies)
+- Sync: local storage only for v1, no backend (see "Data and backup" for the data
+  loss risk this implies); self-hosted webapp sync with a local/server toggle
+  planned for v2 (see "Collaboration")
+- Notification snooze: smart (context-aware, iOS-style) snooze promoted to MVP,
+  alongside a plain fixed-delay snooze
 - Flag: kept as a separate MVP feature from Priority
 - Location-based reminders: promoted to MVP
 - Folders and List groups: both copied as Apple does, customize later if they turn
