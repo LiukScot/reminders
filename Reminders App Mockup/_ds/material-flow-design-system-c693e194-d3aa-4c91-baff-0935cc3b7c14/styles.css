@@ -1,0 +1,9 @@
+/* Material Flow — global stylesheet entry point.
+   Consumers link THIS one file. It only @imports the token layers and the
+   font faces; no rules live here directly. */
+
+@import "tokens/fonts.css";
+@import "tokens/colors.css";
+@import "tokens/typography.css";
+@import "tokens/spacing.css";
+@import "tokens/motion.css";
