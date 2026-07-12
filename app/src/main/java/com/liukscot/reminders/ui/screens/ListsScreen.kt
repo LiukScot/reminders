@@ -43,7 +43,7 @@ import com.liukscot.reminders.ui.theme.MonoFontFamily
 
 // Ref: Reminders App Mockup "Home" screen — header, "My lists" section, and
 // groupRadius-style rows. Smart-list cards (Flagged/No date/All/Completed)
-// depend on Priority/Flag (issues #7-#8) and are built there, not here.
+// depend on priority/flag fields that don't exist yet — built separately.
 @Composable
 fun ListsScreen(
     onOpenList: (Long) -> Unit,
@@ -104,7 +104,7 @@ fun ListsScreen(
         }
 
         // Ref: mockup's plain "+" FAB — ink-2 circle, accent-solid icon (the
-        // gradient mic button next to it is voice capture, issue #18).
+        // gradient mic button next to it is voice capture, not built yet).
         // 88dp mirrors the mockup's FAB bottom:88 vs floating nav's
         // bottom:10/height:62 — clears the nav bar with the same gap.
         FloatingActionButton(

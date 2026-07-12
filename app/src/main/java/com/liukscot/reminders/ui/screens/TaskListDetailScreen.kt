@@ -67,39 +67,14 @@ fun TaskListDetailScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                HeaderIconButton(icon = R.drawable.ic_chevron_left, contentDescription = "Back", onClick = onBack)
-                Spacer(modifier = Modifier.weight(1f))
-                Box {
-                    HeaderIconButton(
-                        icon = R.drawable.ic_more_horizontal,
-                        contentDescription = "List options",
-                        onClick = { menuExpanded = true },
-                    )
-                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Rename list") },
-                            onClick = {
-                                menuExpanded = false
-                                editing = DetailEditTarget.RenameList
-                            },
-                        )
-                        if (state.lists.size > 1) {
-                            DropdownMenuItem(
-                                text = { Text("Delete list") },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.deleteList()
-                                    onBack()
-                                },
-                            )
-                        }
-                    }
-                }
-            }
+            ListDetailHeader(
+                onBack = onBack,
+                menuExpanded = menuExpanded,
+                onMenuExpandedChange = { menuExpanded = it },
+                canDelete = state.lists.size > 1,
+                onRename = { editing = DetailEditTarget.RenameList },
+                onDelete = { viewModel.deleteList(); onBack() },
+            )
             Text(
                 text = state.list?.name.orEmpty(),
                 style = TextStyle(
@@ -135,53 +110,14 @@ fun TaskListDetailScreen(
                     )
                 }
                 item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { editing = DetailEditTarget.NewTask }
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_plus),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Text(
-                            text = "New reminder",
-                            fontSize = 15.sp,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    }
+                    NewReminderRow(onClick = { editing = DetailEditTarget.NewTask })
                 }
                 if (state.completed.isNotEmpty()) {
                     item {
-                        Column {
-                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Line1))
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { completedExpanded = !completedExpanded }
-                                    .padding(horizontal = 4.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = "Completed (${state.completed.size})",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_chevron_right),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.outline,
-                                    modifier = Modifier.size(15.dp),
-                                )
-                            }
-                        }
+                        CompletedSectionHeader(
+                            count = state.completed.size,
+                            onClick = { completedExpanded = !completedExpanded },
+                        )
                     }
                     if (completedExpanded) {
                         itemsIndexed(state.completed, key = { _, group -> "completed-${group.task.id}" }) { index, group ->
@@ -266,6 +202,95 @@ private fun HeaderIconButton(icon: Int, contentDescription: String, onClick: () 
     }
 }
 
+@Composable
+private fun ListDetailHeader(
+    onBack: () -> Unit,
+    menuExpanded: Boolean,
+    onMenuExpandedChange: (Boolean) -> Unit,
+    canDelete: Boolean,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        HeaderIconButton(icon = R.drawable.ic_chevron_left, contentDescription = "Back", onClick = onBack)
+        Spacer(modifier = Modifier.weight(1f))
+        Box {
+            HeaderIconButton(
+                icon = R.drawable.ic_more_horizontal,
+                contentDescription = "List options",
+                onClick = { onMenuExpandedChange(true) },
+            )
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { onMenuExpandedChange(false) }) {
+                DropdownMenuItem(
+                    text = { Text("Rename list") },
+                    onClick = { onMenuExpandedChange(false); onRename() },
+                )
+                if (canDelete) {
+                    DropdownMenuItem(
+                        text = { Text("Delete list") },
+                        onClick = { onMenuExpandedChange(false); onDelete() },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NewReminderRow(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_plus),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = "New reminder",
+            fontSize = 15.sp,
+            color = MaterialTheme.colorScheme.outline,
+        )
+    }
+}
+
+@Composable
+private fun CompletedSectionHeader(count: Int, onClick: () -> Unit) {
+    Column {
+        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Line1))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 4.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Completed ($count)",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Icon(
+                painter = painterResource(R.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(15.dp),
+            )
+        }
+    }
+}
+
 // One card per task group: parent title/meta, then its sub-tasks stacked
 // directly below — no separate background per sub-task (matches mockup).
 @Composable
@@ -338,7 +363,7 @@ private fun TaskGroupCard(
 }
 
 @Composable
-private fun CompletedTaskRow(task: Task, shape: androidx.compose.ui.graphics.Shape, onToggle: (Task) -> Unit) {
+private fun CompletedTaskRow(task: Task, shape: Shape, onToggle: (Task) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

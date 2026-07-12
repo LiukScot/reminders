@@ -42,7 +42,7 @@ import com.liukscot.reminders.ui.components.GradientButton
 // reminder sheet"). One deliberate deviation: the mockup has no list-picker
 // UI (list inferred from screen context, falling back to a hardcoded list) —
 // per explicit user decision this sheet instead shows a list dropdown,
-// pre-selected from the active list or the default-list setting (#35).
+// pre-selected from the active list or the configurable default-list setting.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReminderSheet(

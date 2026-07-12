@@ -40,6 +40,4 @@ class RemindersRepository(
     suspend fun updateTask(task: Task) = taskDao.update(task)
 
     suspend fun deleteTask(task: Task) = taskDao.delete(task)
-
-    suspend fun isEmpty(): Boolean = taskListDao.getById(1) == null && taskDao.getById(1) == null
 }
