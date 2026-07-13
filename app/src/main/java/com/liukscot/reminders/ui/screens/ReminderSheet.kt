@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -39,6 +41,12 @@ import com.liukscot.reminders.R
 import com.liukscot.reminders.data.Task
 import com.liukscot.reminders.data.TaskList
 import com.liukscot.reminders.ui.components.GradientButton
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.YearMonth
+import java.time.ZoneId
 
 private val PRIORITY_LABELS = listOf("None", "!", "!!", "!!!")
 
@@ -55,7 +63,16 @@ fun ReminderSheet(
     existingTags: List<String> = emptyList(),
     preselectedListId: Long?,
     onDismiss: () -> Unit,
-    onSave: (title: String, notes: String?, listId: Long, tags: List<String>, flagged: Boolean, priority: Int) -> Unit,
+    onSave: (
+        title: String,
+        notes: String?,
+        listId: Long,
+        tags: List<String>,
+        flagged: Boolean,
+        priority: Int,
+        dueAt: Long?,
+        hasDueTime: Boolean,
+    ) -> Unit,
 ) {
     var title by remember { mutableStateOf(existingTask?.title ?: "") }
     var notes by remember { mutableStateOf(existingTask?.notes ?: "") }
@@ -65,6 +82,14 @@ fun ReminderSheet(
     var selectedListId by remember {
         mutableStateOf(existingTask?.listId ?: preselectedListId ?: lists.firstOrNull()?.id)
     }
+    val existingDateTime = remember(existingTask) {
+        existingTask?.dueAt?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDateTime() }
+    }
+    var dateEnabled by remember { mutableStateOf(existingTask?.dueAt != null) }
+    var selectedDate by remember { mutableStateOf(existingDateTime?.toLocalDate() ?: LocalDate.now()) }
+    var displayedMonth by remember { mutableStateOf(YearMonth.from(selectedDate)) }
+    var timeEnabled by remember { mutableStateOf(existingTask?.hasDueTime ?: false) }
+    var selectedTime by remember { mutableStateOf(existingDateTime?.toLocalTime() ?: LocalTime.of(9, 0)) }
     var listMenuExpanded by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
     val fieldColors = TextFieldDefaults.colors(
@@ -89,6 +114,7 @@ fun ReminderSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 18.dp)
                 .padding(bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -136,6 +162,22 @@ fun ReminderSheet(
                 colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(),
             )
+            DueDateSection(
+                enabled = dateEnabled,
+                onEnabledChange = { dateEnabled = it },
+                selectedDate = selectedDate,
+                onDateSelected = { selectedDate = it },
+                displayedMonth = displayedMonth,
+                onMonthChange = { displayedMonth = it },
+            )
+            if (dateEnabled) {
+                DueTimeSection(
+                    enabled = timeEnabled,
+                    onEnabledChange = { timeEnabled = it },
+                    selectedTime = selectedTime,
+                    onTimeSelected = { selectedTime = it },
+                )
+            }
             Text(
                 text = "PRIORITY",
                 fontSize = 11.sp,
@@ -243,7 +285,13 @@ fun ReminderSheet(
                     val listId = selectedListId
                     if (title.isNotBlank() && listId != null) {
                         val tags = tagsText.split(" ").map { it.trim() }.filter { it.isNotEmpty() }
-                        onSave(title, notes.ifBlank { null }, listId, tags, flagged, priority)
+                        val dueAt = if (dateEnabled) {
+                            val time = if (timeEnabled) selectedTime else LocalTime.MIDNIGHT
+                            LocalDateTime.of(selectedDate, time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        } else {
+                            null
+                        }
+                        onSave(title, notes.ifBlank { null }, listId, tags, flagged, priority, dueAt, dateEnabled && timeEnabled)
                     }
                 },
                 enabled = title.isNotBlank() && selectedListId != null,

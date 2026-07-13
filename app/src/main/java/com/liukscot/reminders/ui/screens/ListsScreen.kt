@@ -142,8 +142,8 @@ fun ListsScreen(
             lists = state.allLists,
             preselectedListId = state.defaultListId,
             onDismiss = { editing = EditTarget.None },
-            onSave = { title, notes, listId, tags, flagged, priority ->
-                viewModel.addTask(title, notes, listId, tags, flagged, priority)
+            onSave = { title, notes, listId, tags, flagged, priority, dueAt, hasDueTime ->
+                viewModel.addTask(title, notes, listId, tags, flagged, priority, dueAt, hasDueTime)
                 editing = EditTarget.None
             },
         )

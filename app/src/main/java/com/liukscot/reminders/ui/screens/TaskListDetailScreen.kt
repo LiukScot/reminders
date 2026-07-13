@@ -54,6 +54,9 @@ import com.liukscot.reminders.data.Task
 import com.liukscot.reminders.ui.theme.CheckboxIdleBorder
 import com.liukscot.reminders.ui.theme.Line1
 import com.liukscot.reminders.ui.theme.MonoFontFamily
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 // Ref: Reminders App Mockup "List detail" screen (data-screen-label="List
 // detail"). Sub-tasks nest inside their parent's own card (no separate
@@ -157,8 +160,8 @@ fun TaskListDetailScreen(
             lists = state.lists,
             preselectedListId = listId,
             onDismiss = { editing = DetailEditTarget.None },
-            onSave = { title, notes, taskListId, tags, flagged, priority ->
-                viewModel.saveTask(null, title, notes, taskListId, tags, flagged, priority)
+            onSave = { title, notes, taskListId, tags, flagged, priority, dueAt, hasDueTime ->
+                viewModel.saveTask(null, title, notes, taskListId, tags, flagged, priority, dueAt, hasDueTime)
                 editing = DetailEditTarget.None
             },
         )
@@ -168,8 +171,8 @@ fun TaskListDetailScreen(
             existingTags = target.group.tags,
             preselectedListId = listId,
             onDismiss = { editing = DetailEditTarget.None },
-            onSave = { title, notes, taskListId, tags, flagged, priority ->
-                viewModel.saveTask(target.group.task, title, notes, taskListId, tags, flagged, priority)
+            onSave = { title, notes, taskListId, tags, flagged, priority, dueAt, hasDueTime ->
+                viewModel.saveTask(target.group.task, title, notes, taskListId, tags, flagged, priority, dueAt, hasDueTime)
                 editing = DetailEditTarget.None
             },
         )
@@ -346,7 +349,15 @@ private fun TaskGroupCard(
                         )
                     }
                 }
-                val metaText = (listOfNotNull(task.notes) + group.tags.map { "#$it" }).joinToString(" · ")
+                val dueText = task.dueAt?.let { dueAt ->
+                    val zoned = Instant.ofEpochMilli(dueAt).atZone(ZoneId.systemDefault())
+                    if (task.hasDueTime) {
+                        zoned.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
+                    } else {
+                        zoned.toLocalDate().format(DateTimeFormatter.ofPattern("MMM d"))
+                    }
+                }
+                val metaText = (listOfNotNull(dueText, task.notes) + group.tags.map { "#$it" }).joinToString(" · ")
                 if (metaText.isNotEmpty()) {
                     Text(
                         text = metaText,

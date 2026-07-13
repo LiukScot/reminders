@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,12 +35,19 @@ private const val LIST_DETAIL_ROUTE = "listDetail/{listId}"
 private fun listDetailRoute(listId: Long) = "listDetail/$listId"
 
 @Composable
-fun RemindersApp() {
+fun RemindersApp(deepLinkListId: Long? = null) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
     val current = Destination.entries.firstOrNull { dest ->
         currentDestination?.hierarchy?.any { it.route == dest.route } == true
+    }
+
+    // Tapping a due-reminder notification opens straight to that task's list.
+    LaunchedEffect(deepLinkListId) {
+        if (deepLinkListId != null && deepLinkListId > 0) {
+            navController.navigate(listDetailRoute(deepLinkListId))
+        }
     }
 
     Box(
