@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Task::class, TaskList::class, Tag::class, TaskTagCrossRef::class], version = 6)
+@Database(entities = [Task::class, TaskList::class, Tag::class, TaskTagCrossRef::class], version = 7)
 abstract class RemindersDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun taskListDao(): TaskListDao

@@ -30,6 +30,7 @@ data class Task(
     val title: String,
     val notes: String? = null,
     val dueAt: Long? = null,
+    val hasDueTime: Boolean = false,
     val flagged: Boolean = false,
     val priority: Int = 0,
     val completed: Boolean = false,

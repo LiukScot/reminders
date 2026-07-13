@@ -10,6 +10,7 @@ import com.liukscot.reminders.data.RemindersRepository
 import com.liukscot.reminders.data.SettingsRepository
 import com.liukscot.reminders.data.Task
 import com.liukscot.reminders.data.TaskList
+import com.liukscot.reminders.notifications.ReminderScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -27,6 +28,7 @@ data class ListsUiState(
 class ListsViewModel(
     private val repository: RemindersRepository,
     private val settingsRepository: SettingsRepository,
+    private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
     val uiState: StateFlow<ListsUiState> = combine(
         repository.lists,
@@ -58,19 +60,30 @@ class ListsViewModel(
         viewModelScope.launch { repository.deleteList(list) }
     }
 
-    fun addTask(title: String, notes: String?, listId: Long, tags: List<String>, flagged: Boolean, priority: Int) {
+    fun addTask(
+        title: String,
+        notes: String?,
+        listId: Long,
+        tags: List<String>,
+        flagged: Boolean,
+        priority: Int,
+        dueAt: Long?,
+        hasDueTime: Boolean,
+    ) {
         viewModelScope.launch {
-            val taskId = repository.addTask(
-                Task(
-                    listId = listId,
-                    title = title,
-                    notes = notes,
-                    flagged = flagged,
-                    priority = priority,
-                    createdAt = System.currentTimeMillis(),
-                ),
+            val newTask = Task(
+                listId = listId,
+                title = title,
+                notes = notes,
+                flagged = flagged,
+                priority = priority,
+                dueAt = dueAt,
+                hasDueTime = hasDueTime,
+                createdAt = System.currentTimeMillis(),
             )
-            repository.setTags(taskId, tags)
+            val saved = newTask.copy(id = repository.addTask(newTask))
+            repository.setTags(saved.id, tags)
+            reminderScheduler.schedule(saved)
         }
     }
 }
@@ -78,5 +91,5 @@ class ListsViewModel(
 @Composable
 fun rememberListsViewModel(): ListsViewModel {
     val app = LocalContext.current.applicationContext as RemindersApplication
-    return viewModel { ListsViewModel(app.repository, app.settingsRepository) }
+    return viewModel { ListsViewModel(app.repository, app.settingsRepository, app.reminderScheduler) }
 }
