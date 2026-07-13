@@ -329,7 +329,7 @@ private fun TaskGroupCard(
                         )
                     }
                 }
-                val metaText = (listOfNotNull(task.notes) + group.tags.map { "#$it" }).joinToString(" · ")
+                val metaText = task.notes.orEmpty()
                 if (metaText.isNotEmpty()) {
                     Text(
                         text = metaText,

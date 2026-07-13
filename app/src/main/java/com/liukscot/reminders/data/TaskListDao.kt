@@ -15,9 +15,6 @@ interface TaskListDao {
     @Query("SELECT * FROM task_lists WHERE id = :id")
     suspend fun getById(id: Long): TaskList?
 
-    @Query("SELECT COUNT(*) FROM task_lists")
-    suspend fun count(): Int
-
     @Insert
     suspend fun insert(taskList: TaskList): Long
 

@@ -64,6 +64,13 @@ fun ReminderSheet(
         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
         focusedIndicatorColor = Color.Transparent,
         unfocusedIndicatorColor = Color.Transparent,
+        // The list field is `enabled = false` (see below) so it doesn't
+        // steal taps from the overlay that opens the dropdown — pin the
+        // disabled look to match enabled so it doesn't visually dim.
+        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+        disabledIndicatorColor = Color.Transparent,
+        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 
     ModalBottomSheet(
@@ -122,10 +129,16 @@ fun ReminderSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
             Box {
+                // A TextField consumes taps for its own focus handling, so a
+                // plain `.clickable` on it never fires (verified on-device:
+                // the menu didn't open). `enabled = false` stops it from
+                // taking touch input at all; a transparent clickable Box on
+                // top opens the menu instead. Disabled colors are pinned to
+                // match the enabled look so it doesn't visually dim.
                 TextField(
                     value = lists.firstOrNull { it.id == selectedListId }?.name.orEmpty(),
                     onValueChange = {},
-                    readOnly = true,
+                    enabled = false,
                     trailingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_chevron_right),
@@ -135,8 +148,11 @@ fun ReminderSheet(
                     },
                     shape = RoundedCornerShape(12.dp),
                     colors = fieldColors,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .matchParentSize()
                         .clickable { listMenuExpanded = true },
                 )
                 DropdownMenu(expanded = listMenuExpanded, onDismissRequest = { listMenuExpanded = false }) {

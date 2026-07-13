@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class TaskGroup(val task: Task, val subtasks: List<Task>, val tags: List<String> = emptyList())
+data class TaskGroup(val task: Task, val subtasks: List<Task>)
 
 data class TaskListDetailUiState(
     val list: TaskList? = null,
@@ -31,13 +31,11 @@ class TaskListDetailViewModel(
     val uiState: StateFlow<TaskListDetailUiState> = combine(
         repository.lists,
         repository.tasksIn(listId),
-        repository.tagNamesForList(listId),
-    ) { lists, tasks, tagNames ->
+    ) { lists, tasks ->
         val childrenByParent = tasks.filter { it.parentId != null }.groupBy { it.parentId }
-        val tagsByTaskId = tagNames.groupBy({ it.taskId }, { it.tagName })
         val groups = tasks
             .filter { it.parentId == null }
-            .map { TaskGroup(it, childrenByParent[it.id] ?: emptyList(), tagsByTaskId[it.id] ?: emptyList()) }
+            .map { TaskGroup(it, childrenByParent[it.id] ?: emptyList()) }
         TaskListDetailUiState(
             list = lists.firstOrNull { it.id == listId },
             lists = lists,
@@ -62,25 +60,8 @@ class TaskListDetailViewModel(
         }
     }
 
-    fun addSubtask(parent: Task, title: String) {
-        viewModelScope.launch {
-            repository.addTask(
-                Task(
-                    listId = parent.listId,
-                    parentId = parent.id,
-                    title = title,
-                    createdAt = System.currentTimeMillis(),
-                ),
-            )
-        }
-    }
-
     fun toggleComplete(task: Task) {
         viewModelScope.launch { repository.updateTask(task.copy(completed = !task.completed)) }
-    }
-
-    fun setTags(task: Task, tagNames: List<String>) {
-        viewModelScope.launch { repository.setTags(task.id, tagNames) }
     }
 
     fun renameList(newName: String) {
