@@ -69,16 +69,22 @@ Checklist of everything Apple Reminders does, with a proposed priority.
 
 ## AI / smart
 
+- [MVP] AI model provider selection (Settings) — a switch to choose which AI
+  provider powers every AI feature below. Default: Mistral (Voxtral Small).
+  Second option: Google (Gemini). See requirements.md → "Voice / AI provider"
+  and architecture.md → "Voice / AI".
 - [MVP] Natural language in the title → date/time/recurrence (already in
   requirements.md)
-- [MVP] Voice → structured task via Gemini API (already decided)
+- [MVP] Voice → structured task via the configured AI provider (already decided,
+  provider is now user-selectable — see above)
 - [v2] ML auto-categorization (automatically puts a task in "Work"/"Personal"/
   "Groceries" based on keywords) — nice but not essential, and with NLU already
-  going through Gemini this could come almost free by also asking for the category
-  in the same prompt instead of building a separate classifier
+  going through the configured provider this could come almost free by also
+  asking for the category in the same prompt instead of building a separate
+  classifier
 - [v2] Grocery lists with automatic grouping by department (dairy, produce...) —
-  same reasoning: with Gemini already in the loop, ask it in the prompt instead of
-  a dedicated system
+  same reasoning: with an AI provider already in the loop, ask it in the prompt
+  instead of a dedicated system
 
 ## Other
 
@@ -98,3 +104,5 @@ Checklist of everything Apple Reminders does, with a proposed priority.
 - Location-based reminders: promoted to MVP
 - Folders and List groups: both copied as Apple does, customize later if they turn
   out redundant in practice
+- AI provider: no longer hardcoded to Gemini — user-configurable via Settings,
+  defaulting to Mistral with Google as the second option (see "AI / smart")

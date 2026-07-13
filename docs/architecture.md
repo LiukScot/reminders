@@ -23,11 +23,19 @@
 
 ## Voice / AI
 
-- Gemini API for voice-to-task (audio → structured JSON with title/date/time/
-  recurrence), full reasoning in [requirements.md](requirements.md).
+- The AI provider is user-configurable (Settings → AI model), not hardcoded —
+  full reasoning in [requirements.md](requirements.md). Default: Mistral (Voxtral
+  Small). Second option: Google (Gemini). Both take audio in, return structured
+  JSON (title/date/time/recurrence) in a single call — no provider-specific
+  pipeline shape difference, so the app-side integration is a single interface
+  with two implementations, not two divergent code paths.
+- Selection persisted the same way as the default-list setting (DataStore
+  Preferences, see `SettingsRepository`) — a single preference key, no new
+  storage mechanism.
 - Called directly from the app for now; to be reevaluated if a backend/proxy layer
-  is needed (e.g. to avoid exposing the API key in the client — **point to
-  investigate before writing the voice feature's code**, not yet decided).
+  is needed (e.g. to avoid exposing API keys in the client — **point to
+  investigate before writing the voice feature's code**, not yet decided). With
+  two providers this now means two client-side keys to protect, not one.
 
 ## To define later
 

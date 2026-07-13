@@ -34,11 +34,18 @@ external Siri/Gemini assistants.
 - Smart parsing of date/time/recurrence from the title text.
 - Priority: Italian first, English second.
 
-## Voice
+## Voice / AI provider
 
 - No system assistant (Siri/Gemini) can be reliably reached → in-app microphone.
-- **Choice**: Gemini API (audio → structured JSON with title/date/time/recurrence
-  in a single call), free tier for personal use.
+- **Choice**: the AI provider powering voice-to-task (and other AI features, see
+  features.md → "AI / smart") is user-configurable via a Settings switch, not
+  hardcoded. **Default: Mistral** (model: Voxtral Small, via the chat completions
+  API — supports native audio input + `json_schema` structured output in a single
+  call, no separate transcription pipeline needed). **Second option: Google**
+  (Gemini, same single-call audio → structured JSON capability). Both have a
+  no-credit-card free tier suitable for personal use (Mistral: "Experiment" tier,
+  ~2 RPM; Gemini: Flash/Flash-Lite, 1500 requests/day) — verify current limits
+  before relying on them, tiers/pricing change.
 - Alternative discarded for now: self-hosting a small model (e.g. Whisper) —
   would require two separate pipelines (transcription + NLU parsing) to maintain,
   overkill for a single-user app. Reconsider only if privacy or cost issues emerge.
