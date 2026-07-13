@@ -59,5 +59,8 @@ dependencies {
     androidTestImplementation("androidx.room:room-testing:2.8.4")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test:runner:1.7.0")
-    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+    // Pinned to 1.9.0 to match kotlinx-coroutines-core, which Kotlin's own
+    // dependency constraints strictly lock to 1.9.0 — 1.11.0 is ABI-incompatible
+    // with it and crashes every androidTest with NoSuchMethodError at runtime.
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }

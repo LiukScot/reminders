@@ -111,7 +111,7 @@ fun TaskListDetailScreen(
                         group = group,
                         shape = groupedRowShape(index, state.open.size, bigRadius = 14.dp, smallRadius = 4.dp),
                         onToggle = viewModel::toggleComplete,
-                        onEdit = { editing = DetailEditTarget.EditTask(group.task) },
+                        onEdit = { editing = DetailEditTarget.EditTask(group) },
                     )
                 }
                 item {
@@ -157,18 +157,19 @@ fun TaskListDetailScreen(
             lists = state.lists,
             preselectedListId = listId,
             onDismiss = { editing = DetailEditTarget.None },
-            onSave = { title, notes, taskListId ->
-                viewModel.saveTask(null, title, notes, taskListId)
+            onSave = { title, notes, taskListId, tags ->
+                viewModel.saveTask(null, title, notes, taskListId, tags)
                 editing = DetailEditTarget.None
             },
         )
         is DetailEditTarget.EditTask -> ReminderSheet(
             lists = state.lists,
-            existingTask = target.task,
+            existingTask = target.group.task,
+            existingTags = target.group.tags,
             preselectedListId = listId,
             onDismiss = { editing = DetailEditTarget.None },
-            onSave = { title, notes, taskListId ->
-                viewModel.saveTask(target.task, title, notes, taskListId)
+            onSave = { title, notes, taskListId, tags ->
+                viewModel.saveTask(target.group.task, title, notes, taskListId, tags)
                 editing = DetailEditTarget.None
             },
         )
@@ -187,7 +188,7 @@ private sealed interface DetailEditTarget {
     data object None : DetailEditTarget
     data object NewTask : DetailEditTarget
     data object RenameList : DetailEditTarget
-    data class EditTask(val task: Task) : DetailEditTarget
+    data class EditTask(val group: TaskGroup) : DetailEditTarget
 }
 
 @Composable
@@ -337,7 +338,7 @@ private fun TaskGroupCard(
                         )
                     }
                 }
-                val metaText = task.notes.orEmpty()
+                val metaText = (listOfNotNull(task.notes) + group.tags.map { "#$it" }).joinToString(" · ")
                 if (metaText.isNotEmpty()) {
                     Text(
                         text = metaText,

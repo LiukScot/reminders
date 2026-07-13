@@ -48,12 +48,14 @@ import com.liukscot.reminders.ui.components.GradientButton
 fun ReminderSheet(
     lists: List<TaskList>,
     existingTask: Task? = null,
+    existingTags: List<String> = emptyList(),
     preselectedListId: Long?,
     onDismiss: () -> Unit,
-    onSave: (title: String, notes: String?, listId: Long) -> Unit,
+    onSave: (title: String, notes: String?, listId: Long, tags: List<String>) -> Unit,
 ) {
     var title by remember { mutableStateOf(existingTask?.title ?: "") }
     var notes by remember { mutableStateOf(existingTask?.notes ?: "") }
+    var tagsText by remember { mutableStateOf(existingTags.joinToString(" ")) }
     var selectedListId by remember {
         mutableStateOf(existingTask?.listId ?: preselectedListId ?: lists.firstOrNull()?.id)
     }
@@ -164,12 +166,30 @@ fun ReminderSheet(
                     }
                 }
             }
+            TextField(
+                value = tagsText,
+                onValueChange = { tagsText = it },
+                placeholder = { Text("Add tags, separated by spaces") },
+                singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_tag),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp),
+                    )
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors,
+                modifier = Modifier.fillMaxWidth(),
+            )
             GradientButton(
                 text = if (existingTask != null) "Save changes" else "Add reminder",
                 onClick = {
                     val listId = selectedListId
                     if (title.isNotBlank() && listId != null) {
-                        onSave(title, notes.ifBlank { null }, listId)
+                        val tags = tagsText.split(" ").map { it.trim() }.filter { it.isNotEmpty() }
+                        onSave(title, notes.ifBlank { null }, listId, tags)
                     }
                 },
                 enabled = title.isNotBlank() && selectedListId != null,

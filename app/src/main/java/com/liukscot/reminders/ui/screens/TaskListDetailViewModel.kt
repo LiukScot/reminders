@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class TaskGroup(val task: Task, val subtasks: List<Task>)
+data class TaskGroup(val task: Task, val subtasks: List<Task>, val tags: List<String>)
 
 data class TaskListDetailUiState(
     val list: TaskList? = null,
@@ -31,11 +31,12 @@ class TaskListDetailViewModel(
     val uiState: StateFlow<TaskListDetailUiState> = combine(
         repository.lists,
         repository.tasksIn(listId),
-    ) { lists, tasks ->
+        repository.tagsByTaskId,
+    ) { lists, tasks, tagsByTaskId ->
         val childrenByParent = tasks.filter { it.parentId != null }.groupBy { it.parentId }
         val groups = tasks
             .filter { it.parentId == null }
-            .map { TaskGroup(it, childrenByParent[it.id] ?: emptyList()) }
+            .map { TaskGroup(it, childrenByParent[it.id] ?: emptyList(), tagsByTaskId[it.id] ?: emptyList()) }
         TaskListDetailUiState(
             list = lists.firstOrNull { it.id == listId },
             lists = lists,
@@ -48,15 +49,17 @@ class TaskListDetailViewModel(
         initialValue = TaskListDetailUiState(),
     )
 
-    fun saveTask(existing: Task?, title: String, notes: String?, listId: Long) {
+    fun saveTask(existing: Task?, title: String, notes: String?, listId: Long, tags: List<String>) {
         viewModelScope.launch {
-            if (existing != null) {
+            val taskId = if (existing != null) {
                 repository.updateTask(existing.copy(title = title, notes = notes, listId = listId))
+                existing.id
             } else {
                 repository.addTask(
                     Task(listId = listId, title = title, notes = notes, createdAt = System.currentTimeMillis()),
                 )
             }
+            repository.setTags(taskId, tags)
         }
     }
 
