@@ -11,7 +11,7 @@ data class ListCount(val listId: Long, val count: Int)
 
 @Dao
 interface TaskDao {
-    @Query("SELECT * FROM tasks WHERE listId = :listId ORDER BY createdAt DESC")
+    @Query("SELECT * FROM tasks WHERE listId = :listId ORDER BY priority DESC, createdAt DESC")
     fun getByList(listId: Long): Flow<List<Task>>
 
     @Query("SELECT * FROM tasks WHERE id = :id")

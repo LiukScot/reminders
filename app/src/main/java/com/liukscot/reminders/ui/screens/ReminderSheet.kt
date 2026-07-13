@@ -40,6 +40,8 @@ import com.liukscot.reminders.data.Task
 import com.liukscot.reminders.data.TaskList
 import com.liukscot.reminders.ui.components.GradientButton
 
+private val PRIORITY_LABELS = listOf("None", "!", "!!", "!!!")
+
 // Ref: Reminders App Mockup "New reminder" sheet (data-screen-label="New
 // reminder sheet"). One deliberate deviation: the mockup has no list-picker
 // UI (list inferred from screen context, falling back to a hardcoded list) —
@@ -53,12 +55,13 @@ fun ReminderSheet(
     existingTags: List<String> = emptyList(),
     preselectedListId: Long?,
     onDismiss: () -> Unit,
-    onSave: (title: String, notes: String?, listId: Long, tags: List<String>, flagged: Boolean) -> Unit,
+    onSave: (title: String, notes: String?, listId: Long, tags: List<String>, flagged: Boolean, priority: Int) -> Unit,
 ) {
     var title by remember { mutableStateOf(existingTask?.title ?: "") }
     var notes by remember { mutableStateOf(existingTask?.notes ?: "") }
     var tagsText by remember { mutableStateOf(existingTags.joinToString(" ")) }
     var flagged by remember { mutableStateOf(existingTask?.flagged ?: false) }
+    var priority by remember { mutableStateOf(existingTask?.priority ?: 0) }
     var selectedListId by remember {
         mutableStateOf(existingTask?.listId ?: preselectedListId ?: lists.firstOrNull()?.id)
     }
@@ -133,6 +136,31 @@ fun ReminderSheet(
                 colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(),
             )
+            Text(
+                text = "PRIORITY",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.3.sp,
+                color = MaterialTheme.colorScheme.outline,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                PRIORITY_LABELS.forEachIndexed { value, label ->
+                    val selected = priority == value
+                    Text(
+                        text = label,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                RoundedCornerShape(50),
+                            )
+                            .clickable { priority = value }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                    )
+                }
+            }
             Box {
                 // A TextField consumes taps for its own focus handling, so a
                 // plain `.clickable` on it never fires (verified on-device:
@@ -215,7 +243,7 @@ fun ReminderSheet(
                     val listId = selectedListId
                     if (title.isNotBlank() && listId != null) {
                         val tags = tagsText.split(" ").map { it.trim() }.filter { it.isNotEmpty() }
-                        onSave(title, notes.ifBlank { null }, listId, tags, flagged)
+                        onSave(title, notes.ifBlank { null }, listId, tags, flagged, priority)
                     }
                 },
                 enabled = title.isNotBlank() && selectedListId != null,

@@ -157,8 +157,8 @@ fun TaskListDetailScreen(
             lists = state.lists,
             preselectedListId = listId,
             onDismiss = { editing = DetailEditTarget.None },
-            onSave = { title, notes, taskListId, tags, flagged ->
-                viewModel.saveTask(null, title, notes, taskListId, tags, flagged)
+            onSave = { title, notes, taskListId, tags, flagged, priority ->
+                viewModel.saveTask(null, title, notes, taskListId, tags, flagged, priority)
                 editing = DetailEditTarget.None
             },
         )
@@ -168,8 +168,8 @@ fun TaskListDetailScreen(
             existingTags = target.group.tags,
             preselectedListId = listId,
             onDismiss = { editing = DetailEditTarget.None },
-            onSave = { title, notes, taskListId, tags, flagged ->
-                viewModel.saveTask(target.group.task, title, notes, taskListId, tags, flagged)
+            onSave = { title, notes, taskListId, tags, flagged, priority ->
+                viewModel.saveTask(target.group.task, title, notes, taskListId, tags, flagged, priority)
                 editing = DetailEditTarget.None
             },
         )
@@ -322,6 +322,14 @@ private fun TaskGroupCard(
             // Ref: mockup's `rowTap` opens this same task in the edit sheet.
             Column(modifier = Modifier.weight(1f).clickable(onClick = onEdit)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (task.priority > 0) {
+                        Text(
+                            text = "!".repeat(task.priority),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                     Text(
                         text = task.title,
                         fontSize = 15.sp,
