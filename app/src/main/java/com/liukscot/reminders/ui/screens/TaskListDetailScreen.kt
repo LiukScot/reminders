@@ -157,8 +157,8 @@ fun TaskListDetailScreen(
             lists = state.lists,
             preselectedListId = listId,
             onDismiss = { editing = DetailEditTarget.None },
-            onSave = { title, notes, taskListId, tags ->
-                viewModel.saveTask(null, title, notes, taskListId, tags)
+            onSave = { title, notes, taskListId, tags, flagged ->
+                viewModel.saveTask(null, title, notes, taskListId, tags, flagged)
                 editing = DetailEditTarget.None
             },
         )
@@ -168,8 +168,8 @@ fun TaskListDetailScreen(
             existingTags = target.group.tags,
             preselectedListId = listId,
             onDismiss = { editing = DetailEditTarget.None },
-            onSave = { title, notes, taskListId, tags ->
-                viewModel.saveTask(target.group.task, title, notes, taskListId, tags)
+            onSave = { title, notes, taskListId, tags, flagged ->
+                viewModel.saveTask(target.group.task, title, notes, taskListId, tags, flagged)
                 editing = DetailEditTarget.None
             },
         )
