@@ -164,7 +164,8 @@ fun ReminderSheet(
             TextField(
                 value = title,
                 onValueChange = { title = it },
-                placeholder = { Text("What do you need to do?") },
+                placeholder = { Text("What do you need to do?", fontSize = 16.sp, fontWeight = FontWeight.SemiBold) },
+                textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = fieldColors,
@@ -173,7 +174,8 @@ fun ReminderSheet(
             TextField(
                 value = notes,
                 onValueChange = { notes = it },
-                placeholder = { Text("Add notes") },
+                placeholder = { Text("Add notes", fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground) },
+                textStyle = TextStyle(fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground),
                 shape = RoundedCornerShape(12.dp),
                 colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(),
