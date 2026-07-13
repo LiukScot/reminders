@@ -1,33 +1,47 @@
 package com.liukscot.reminders.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-private val LightColors = lightColorScheme(
-    primary = Orange40,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    primaryContainer = Orange80,
-    onPrimaryContainer = Orange20,
-)
-
-private val DarkColors = darkColorScheme(
-    primary = Orange80,
-    onPrimary = Orange20,
-    primaryContainer = Orange40,
-    onPrimaryContainer = Orange80,
+// Material Flow is dark-only by design (see docs/design-system.md) — there is
+// deliberately no light ColorScheme to switch to.
+private val EmberDarkColors = darkColorScheme(
+    primary = EmberAccentSolid,
+    onPrimary = EmberTextOnAccent,
+    primaryContainer = EmberAccentSoft,
+    onPrimaryContainer = EmberTextOnAccent,
+    secondary = TextMuted,
+    onSecondary = InkBg,
+    secondaryContainer = InkRaised,
+    onSecondaryContainer = TextBody,
+    tertiary = EmberFlowB,
+    onTertiary = EmberTextOnAccent,
+    tertiaryContainer = InkHover,
+    onTertiaryContainer = TextBody,
+    error = StatusDanger,
+    onError = InkBase,
+    errorContainer = InkRaised,
+    onErrorContainer = StatusDanger,
+    background = InkBg,
+    onBackground = TextBody,
+    surface = InkCard,
+    onSurface = TextStrong,
+    surfaceVariant = InkRaised,
+    onSurfaceVariant = TextMuted,
+    outline = TextFaint,
+    outlineVariant = InkHover,
+    inverseSurface = TextStrong,
+    inverseOnSurface = InkBg,
+    inversePrimary = EmberFlowA,
+    scrim = InkBase,
+    surfaceTint = EmberAccentSolid,
 )
 
 @Composable
-fun RemindersTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit,
-) {
-    val colorScheme = if (darkTheme) DarkColors else LightColors
+fun RemindersTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = EmberDarkColors,
         typography = Typography,
         content = content,
     )
