@@ -49,14 +49,31 @@ class TaskListDetailViewModel(
         initialValue = TaskListDetailUiState(),
     )
 
-    fun saveTask(existing: Task?, title: String, notes: String?, listId: Long, tags: List<String>, flagged: Boolean) {
+    fun saveTask(
+        existing: Task?,
+        title: String,
+        notes: String?,
+        listId: Long,
+        tags: List<String>,
+        flagged: Boolean,
+        priority: Int,
+    ) {
         viewModelScope.launch {
             val taskId = if (existing != null) {
-                repository.updateTask(existing.copy(title = title, notes = notes, listId = listId, flagged = flagged))
+                repository.updateTask(
+                    existing.copy(title = title, notes = notes, listId = listId, flagged = flagged, priority = priority),
+                )
                 existing.id
             } else {
                 repository.addTask(
-                    Task(listId = listId, title = title, notes = notes, flagged = flagged, createdAt = System.currentTimeMillis()),
+                    Task(
+                        listId = listId,
+                        title = title,
+                        notes = notes,
+                        flagged = flagged,
+                        priority = priority,
+                        createdAt = System.currentTimeMillis(),
+                    ),
                 )
             }
             repository.setTags(taskId, tags)
