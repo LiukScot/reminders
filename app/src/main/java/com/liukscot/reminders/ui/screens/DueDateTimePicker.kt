@@ -33,7 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,6 +49,15 @@ import java.time.YearMonth
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
 import kotlin.math.abs
+
+// Android's default font padding adds asymmetric vertical space around
+// glyphs, which throws off centering in tight pill/wheel containers —
+// disabling it (same fix already used for the list-screen header) is what
+// makes a single centered digit actually sit in the middle of its box.
+private val CenteredNumberStyle = TextStyle(
+    platformStyle = PlatformTextStyle(includeFontPadding = false),
+    lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.Both),
+)
 
 // Ref: "7 - new reminder 2.png". Section header + on/off Switch is shared
 // visual shape for Date and Time.
@@ -130,6 +142,7 @@ fun DueDateSection(
                                     val isToday = date == today
                                     Text(
                                         text = day.toString(),
+                                        style = CenteredNumberStyle,
                                         fontFamily = MonoFontFamily,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
@@ -234,7 +247,7 @@ fun DueTimeSection(
                         .align(Alignment.Center)
                         .width(itemWidth)
                         .height(52.dp)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.28f), RoundedCornerShape(10.dp)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(10.dp)),
                 )
                 LazyRow(
                     state = listState,
@@ -243,13 +256,15 @@ fun DueTimeSection(
                 ) {
                     items(FIVE_MINUTE_TIMES.size) { index ->
                         val time = FIVE_MINUTE_TIMES[index]
+                        val isCentered = index == centeredIndex
                         Box(modifier = Modifier.width(itemWidth), contentAlignment = Alignment.Center) {
                             Text(
                                 text = "%02d:%02d".format(time.hour, time.minute),
+                                style = CenteredNumberStyle,
                                 fontFamily = MonoFontFamily,
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = if (isCentered) FontWeight.Bold else FontWeight.SemiBold,
+                                color = if (isCentered) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
