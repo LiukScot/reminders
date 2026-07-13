@@ -4,8 +4,10 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,18 +28,18 @@ class RemindersDatabaseTest {
     }
 
     @Test
-    fun insertAndReadTask_roundTrips() = runBlocking {
+    fun insertAndReadTask_roundTrips() = runTest {
         val listId = db.taskListDao().insert(TaskList(name = "Groceries"))
         db.taskDao().insert(Task(listId = listId, title = "Buy milk", createdAt = 0))
 
         val tasks = db.taskDao().getByList(listId).first()
 
-        assert(tasks.size == 1)
-        assert(tasks.first().title == "Buy milk")
+        assertEquals(1, tasks.size)
+        assertEquals("Buy milk", tasks.first().title)
     }
 
     @Test
-    fun deletingList_cascadesToItsTasks() = runBlocking {
+    fun deletingList_cascadesToItsTasks() = runTest {
         val listId = db.taskListDao().insert(TaskList(name = "Groceries"))
         db.taskDao().insert(Task(listId = listId, title = "Buy milk", createdAt = 0))
         val list = db.taskListDao().getById(listId)!!
@@ -45,6 +47,6 @@ class RemindersDatabaseTest {
         db.taskListDao().delete(list)
 
         val tasks = db.taskDao().getByList(listId).first()
-        assert(tasks.isEmpty())
+        assertTrue(tasks.isEmpty())
     }
 }

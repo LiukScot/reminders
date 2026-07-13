@@ -69,10 +69,13 @@ class TaskListDetailViewModel(
         viewModelScope.launch { repository.renameList(current, newName) }
     }
 
-    fun deleteList() {
+    fun deleteList(onDeleted: () -> Unit) {
         val current = uiState.value.list ?: return
         if (uiState.value.lists.size <= 1) return
-        viewModelScope.launch { repository.deleteList(current) }
+        viewModelScope.launch {
+            repository.deleteList(current)
+            onDeleted()
+        }
     }
 }
 

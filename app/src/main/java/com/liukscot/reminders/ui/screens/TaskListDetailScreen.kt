@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -34,9 +35,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.liukscot.reminders.R
 import com.liukscot.reminders.data.Task
+import com.liukscot.reminders.ui.theme.CheckboxIdleBorder
 import com.liukscot.reminders.ui.theme.Line1
 import com.liukscot.reminders.ui.theme.MonoFontFamily
 
@@ -73,7 +78,7 @@ fun TaskListDetailScreen(
                 onMenuExpandedChange = { menuExpanded = it },
                 canDelete = state.lists.size > 1,
                 onRename = { editing = DetailEditTarget.RenameList },
-                onDelete = { viewModel.deleteList(); onBack() },
+                onDelete = { viewModel.deleteList(onDeleted = onBack) },
             )
             Text(
                 text = state.list?.name.orEmpty(),
@@ -116,6 +121,7 @@ fun TaskListDetailScreen(
                     item {
                         CompletedSectionHeader(
                             count = state.completed.size,
+                            expanded = completedExpanded,
                             onClick = { completedExpanded = !completedExpanded },
                         )
                     }
@@ -264,7 +270,7 @@ private fun NewReminderRow(onClick: () -> Unit) {
 }
 
 @Composable
-private fun CompletedSectionHeader(count: Int, onClick: () -> Unit) {
+private fun CompletedSectionHeader(count: Int, expanded: Boolean, onClick: () -> Unit) {
     Column {
         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Line1))
         Row(
@@ -285,7 +291,9 @@ private fun CompletedSectionHeader(count: Int, onClick: () -> Unit) {
                 painter = painterResource(R.drawable.ic_chevron_right),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(15.dp),
+                modifier = Modifier
+                    .size(15.dp)
+                    .rotate(if (expanded) 90f else 0f),
             )
         }
     }
@@ -384,10 +392,9 @@ private fun CompletedTaskRow(task: Task, shape: Shape, onToggle: (Task) -> Unit)
     }
 }
 
-private val CheckboxIdleBorder = Color(0x38FFFFFF)
-
 @Composable
 private fun TaskCheckbox(checked: Boolean, size: Dp, checkIconSize: Dp, onClick: () -> Unit) {
+    val label = if (checked) "Completed" else "Mark complete"
     Box(
         modifier = Modifier
             .size(size)
@@ -398,7 +405,8 @@ private fun TaskCheckbox(checked: Boolean, size: Dp, checkIconSize: Dp, onClick:
                     Modifier.border(2.dp, CheckboxIdleBorder, CircleShape)
                 },
             )
-            .clickable(onClick = onClick),
+            .toggleable(value = checked, onValueChange = { onClick() }, role = Role.Checkbox)
+            .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
         if (checked) {

@@ -22,6 +22,7 @@ val TextFaint = Color(0xFF7E7C8E)
 
 // Borders / hairlines (shared) — `--line-1` / `--line-2`
 val Line1 = Color(0x0FFFFFFF)
+val CheckboxIdleBorder = Color(0x38FFFFFF)
 
 // Semantic status (shared)
 val StatusSuccess = Color(0xFF7FD6A6)

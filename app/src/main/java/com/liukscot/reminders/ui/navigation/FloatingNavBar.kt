@@ -98,7 +98,7 @@ private fun NavItem(
         ) {
             Icon(
                 painter = painterResource(destination.icon),
-                contentDescription = destination.label,
+                contentDescription = null,
                 tint = tint,
                 modifier = Modifier.size(19.dp),
             )
