@@ -58,10 +58,10 @@ class ListsViewModel(
         viewModelScope.launch { repository.deleteList(list) }
     }
 
-    fun addTask(title: String, notes: String?, listId: Long, tags: List<String>) {
+    fun addTask(title: String, notes: String?, listId: Long, tags: List<String>, flagged: Boolean) {
         viewModelScope.launch {
             val taskId = repository.addTask(
-                Task(listId = listId, title = title, notes = notes, createdAt = System.currentTimeMillis()),
+                Task(listId = listId, title = title, notes = notes, flagged = flagged, createdAt = System.currentTimeMillis()),
             )
             repository.setTags(taskId, tags)
         }

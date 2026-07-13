@@ -17,6 +17,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -51,11 +53,12 @@ fun ReminderSheet(
     existingTags: List<String> = emptyList(),
     preselectedListId: Long?,
     onDismiss: () -> Unit,
-    onSave: (title: String, notes: String?, listId: Long, tags: List<String>) -> Unit,
+    onSave: (title: String, notes: String?, listId: Long, tags: List<String>, flagged: Boolean) -> Unit,
 ) {
     var title by remember { mutableStateOf(existingTask?.title ?: "") }
     var notes by remember { mutableStateOf(existingTask?.notes ?: "") }
     var tagsText by remember { mutableStateOf(existingTags.joinToString(" ")) }
+    var flagged by remember { mutableStateOf(existingTask?.flagged ?: false) }
     var selectedListId by remember {
         mutableStateOf(existingTask?.listId ?: preselectedListId ?: lists.firstOrNull()?.id)
     }
@@ -183,13 +186,36 @@ fun ReminderSheet(
                 colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(),
             )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_flag),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text("Flag", color = MaterialTheme.colorScheme.onSurface)
+                }
+                Switch(
+                    checked = flagged,
+                    onCheckedChange = { flagged = it },
+                    colors = SwitchDefaults.colors(checkedTrackColor = MaterialTheme.colorScheme.primary),
+                )
+            }
             GradientButton(
                 text = if (existingTask != null) "Save changes" else "Add reminder",
                 onClick = {
                     val listId = selectedListId
                     if (title.isNotBlank() && listId != null) {
                         val tags = tagsText.split(" ").map { it.trim() }.filter { it.isNotEmpty() }
-                        onSave(title, notes.ifBlank { null }, listId, tags)
+                        onSave(title, notes.ifBlank { null }, listId, tags, flagged)
                     }
                 },
                 enabled = title.isNotBlank() && selectedListId != null,
