@@ -2,13 +2,18 @@ package com.liukscot.reminders.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -20,10 +25,12 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -32,19 +39,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.liukscot.reminders.R
 import com.liukscot.reminders.ui.theme.MonoFontFamily
-import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
+import kotlin.math.abs
 
-// Ref: "7 - new reminder 2.png". The mockup's date/time controls are a
-// scroll-snapping "wheel" for time; here time is a scrollable row of tap-to-
-// select chips instead (same visual language as this sheet's other chip rows
-// — Repeat/Priority — rather than hand-rolled scroll-snap-to-center physics).
-// Section header + on/off Switch is shared visual shape for Date and Time.
+// Ref: "7 - new reminder 2.png". Section header + on/off Switch is shared
+// visual shape for Date and Time.
 @Composable
 private fun SectionHeader(label: String, enabled: Boolean, onEnabledChange: (Boolean) -> Unit) {
     Row(
@@ -112,6 +116,7 @@ fun DueDateSection(
                         )
                     }
                 }
+                val today = remember { LocalDate.now() }
                 calendarCells(displayedMonth).forEach { week ->
                     Row(modifier = Modifier.fillMaxWidth()) {
                         week.forEach { day ->
@@ -122,16 +127,25 @@ fun DueDateSection(
                                 if (day != null) {
                                     val date = displayedMonth.atDay(day)
                                     val selected = date == selectedDate
+                                    val isToday = date == today
                                     Text(
                                         text = day.toString(),
                                         fontFamily = MonoFontFamily,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                        color = when {
+                                            selected -> MaterialTheme.colorScheme.onPrimary
+                                            isToday -> MaterialTheme.colorScheme.primary
+                                            else -> MaterialTheme.colorScheme.onSurface
+                                        },
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .background(
-                                                if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                                when {
+                                                    selected -> MaterialTheme.colorScheme.primary
+                                                    isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                                                    else -> Color.Transparent
+                                                },
                                                 RoundedCornerShape(9.dp),
                                             )
                                             .clickable { onDateSelected(date) }
@@ -175,6 +189,10 @@ private fun calendarCells(month: YearMonth): List<List<Int?>> {
 
 private val FIVE_MINUTE_TIMES = (0 until 288).map { LocalTime.MIDNIGHT.plusMinutes(it * 5L) }
 
+// True scroll-snap "wheel": a highlight box fixed at the center of the strip,
+// content scrolls under it, and whichever item settles at center becomes the
+// selection — matching the mockup's wheelTimes behavior exactly (not a
+// tap-to-select chip list).
 @Composable
 fun DueTimeSection(
     enabled: Boolean,
@@ -185,40 +203,69 @@ fun DueTimeSection(
     Column {
         SectionHeader("TIME", enabled, onEnabledChange)
         if (enabled) {
-            val listState = rememberLazyListState()
-            val scope = rememberCoroutineScope()
-            val selectedIndex = FIVE_MINUTE_TIMES.indexOf(selectedTime).coerceAtLeast(0)
-            LaunchedEffect(Unit) { listState.scrollToItem((selectedIndex - 2).coerceAtLeast(0)) }
-            LazyRow(
-                state = listState,
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 6.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-                    .padding(vertical = 12.dp, horizontal = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    .height(70.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp)),
             ) {
-                items(FIVE_MINUTE_TIMES.size) { index ->
-                    val time = FIVE_MINUTE_TIMES[index]
-                    val selected = time == selectedTime
-                    Text(
-                        text = "%02d:%02d".format(time.hour, time.minute),
-                        fontFamily = MonoFontFamily,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .background(
-                                if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                RoundedCornerShape(10.dp),
-                            )
-                            .clickable {
-                                onTimeSelected(time)
-                                scope.launch { listState.animateScrollToItem((index - 2).coerceAtLeast(0)) }
-                            }
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                    )
+                val itemWidth = 64.dp
+                val sidePadding = (maxWidth - itemWidth) / 2
+                val listState = rememberLazyListState()
+                val selectedIndex = remember(selectedTime) { FIVE_MINUTE_TIMES.indexOf(selectedTime).coerceAtLeast(0) }
+                LaunchedEffect(Unit) { listState.scrollToItem(selectedIndex) }
+
+                val centeredIndex by remember {
+                    derivedStateOf {
+                        val info = listState.layoutInfo
+                        val center = (info.viewportStartOffset + info.viewportEndOffset) / 2
+                        info.visibleItemsInfo.minByOrNull { abs((it.offset + it.size / 2) - center) }?.index
+                    }
                 }
+                LaunchedEffect(listState.isScrollInProgress) {
+                    if (!listState.isScrollInProgress) {
+                        centeredIndex?.let { onTimeSelected(FIVE_MINUTE_TIMES[it]) }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .width(itemWidth)
+                        .height(52.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.28f), RoundedCornerShape(10.dp)),
+                )
+                LazyRow(
+                    state = listState,
+                    flingBehavior = rememberSnapFlingBehavior(listState),
+                    contentPadding = PaddingValues(horizontal = sidePadding),
+                ) {
+                    items(FIVE_MINUTE_TIMES.size) { index ->
+                        val time = FIVE_MINUTE_TIMES[index]
+                        Box(modifier = Modifier.width(itemWidth), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "%02d:%02d".format(time.hour, time.minute),
+                                fontFamily = MonoFontFamily,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.horizontalGradient(
+                                0f to MaterialTheme.colorScheme.surfaceVariant,
+                                0.14f to Color.Transparent,
+                                0.86f to Color.Transparent,
+                                1f to MaterialTheme.colorScheme.surfaceVariant,
+                            ),
+                        ),
+                )
             }
         }
     }
