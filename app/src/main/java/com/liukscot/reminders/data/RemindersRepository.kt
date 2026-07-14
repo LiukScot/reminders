@@ -15,7 +15,16 @@ class RemindersRepository(
 
     fun tasksIn(listId: Long): Flow<List<Task>> = taskDao.getByList(listId)
 
+    fun tasksDueBetween(startInclusive: Long, endExclusive: Long): Flow<List<Task>> =
+        taskDao.getDueBetween(startInclusive, endExclusive)
+
+    fun openTasksDueBefore(beforeExclusive: Long): Flow<List<Task>> =
+        taskDao.getOpenDueBefore(beforeExclusive)
+
     fun tasksByTag(tagName: String): Flow<List<Task>> = tagDao.tasksByTagName(tagName)
+
+    suspend fun pendingRemindersFrom(fromInclusive: Long): List<Task> =
+        taskDao.getPendingRemindersFrom(fromInclusive)
 
     suspend fun setTags(taskId: Long, tagNames: List<String>) {
         val normalized = tagNames.map { it.trim() }.filter { it.isNotEmpty() }.distinct()

@@ -109,7 +109,7 @@ fun DueDateSection(
                 ) {
                     CalNavButton(R.drawable.ic_chevron_left) { onMonthChange(displayedMonth.minusMonths(1)) }
                     Text(
-                        text = "${displayedMonth.month.getDisplayName(JavaTextStyle.FULL, Locale.getDefault())} ${displayedMonth.year}",
+                        text = "${displayedMonth.month.getDisplayName(JavaTextStyle.FULL, Locale.ENGLISH)} ${displayedMonth.year}",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -119,7 +119,7 @@ fun DueDateSection(
                 Row(modifier = Modifier.fillMaxWidth()) {
                     DayOfWeek.entries.forEach { day ->
                         Text(
-                            text = day.getDisplayName(JavaTextStyle.SHORT, Locale.getDefault()).take(2).uppercase(),
+                            text = day.getDisplayName(JavaTextStyle.SHORT, Locale.ENGLISH).take(2).uppercase(),
                             modifier = Modifier.weight(1f),
                             textAlign = TextAlign.Center,
                             fontSize = 10.sp,
@@ -200,7 +200,12 @@ private fun calendarCells(month: YearMonth): List<List<Int?>> {
     return (cells + List(trailingBlanks) { null }).chunked(7)
 }
 
-private val FIVE_MINUTE_TIMES = (0 until 288).map { LocalTime.MIDNIGHT.plusMinutes(it * 5L) }
+private val QUARTER_HOUR_TIMES = (0 until 96).map { LocalTime.MIDNIGHT.plusMinutes(it * 15L) }
+
+private fun nearestQuarterHour(time: LocalTime): LocalTime {
+    val roundedMinutes = ((time.toSecondOfDay() / 60 + 7) / 15 * 15) % (24 * 60)
+    return LocalTime.of(roundedMinutes / 60, roundedMinutes % 60)
+}
 
 // True scroll-snap "wheel": a highlight box fixed at the center of the strip,
 // content scrolls under it, and whichever item settles at center becomes the
@@ -216,17 +221,20 @@ fun DueTimeSection(
     Column {
         SectionHeader("TIME", enabled, onEnabledChange)
         if (enabled) {
+            val wheelHeight = 70.dp
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 6.dp)
-                    .height(70.dp)
+                    .height(wheelHeight)
                     .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp)),
             ) {
                 val itemWidth = 64.dp
                 val sidePadding = (maxWidth - itemWidth) / 2
                 val listState = rememberLazyListState()
-                val selectedIndex = remember(selectedTime) { FIVE_MINUTE_TIMES.indexOf(selectedTime).coerceAtLeast(0) }
+                val selectedIndex = remember(selectedTime) {
+                    QUARTER_HOUR_TIMES.indexOf(nearestQuarterHour(selectedTime))
+                }
                 LaunchedEffect(Unit) { listState.scrollToItem(selectedIndex) }
 
                 val centeredIndex by remember {
@@ -238,7 +246,7 @@ fun DueTimeSection(
                 }
                 LaunchedEffect(listState.isScrollInProgress) {
                     if (!listState.isScrollInProgress) {
-                        centeredIndex?.let { onTimeSelected(FIVE_MINUTE_TIMES[it]) }
+                        centeredIndex?.let { onTimeSelected(QUARTER_HOUR_TIMES[it]) }
                     }
                 }
 
@@ -252,12 +260,20 @@ fun DueTimeSection(
                 LazyRow(
                     state = listState,
                     flingBehavior = rememberSnapFlingBehavior(listState),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(wheelHeight),
                     contentPadding = PaddingValues(horizontal = sidePadding),
                 ) {
-                    items(FIVE_MINUTE_TIMES.size) { index ->
-                        val time = FIVE_MINUTE_TIMES[index]
+                    items(QUARTER_HOUR_TIMES.size) { index ->
+                        val time = QUARTER_HOUR_TIMES[index]
                         val isCentered = index == centeredIndex
-                        Box(modifier = Modifier.width(itemWidth), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .width(itemWidth)
+                                .height(wheelHeight),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             Text(
                                 text = "%02d:%02d".format(time.hour, time.minute),
                                 style = CenteredNumberStyle,

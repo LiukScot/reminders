@@ -2,10 +2,12 @@
 <!--  ✍️ PERSONAL — repo-specific rules. Edit freely; sync never touches this. -->
 <!-- ─────────────────────────────────────────────────────────────────── -->
 
-- Before looking at or touching anything frontend, always refer to the
-  design system: https://github.com/LiukScot/Material-Flow-Design-System
+- Before looking at or touching anything frontend, always refer to the local
+  design system at `/home/luca/github/apps/Material Flow Design System`.
 - While building the app, follow
   `/home/luca/github/apps/reminders/Reminders App Mockup` to the letter.
+- When Codex provides an effort advisory, recommend Codex Luna, Terra, or Sol
+  models — never Claude models.
 
 <!-- @@DOTFILES-SYNC@@ ──────────────────────────────────────────────────────── -->
 <!--  🔒 SYNCED — managed by dotfiles. Do NOT edit below; it gets overwritten. -->

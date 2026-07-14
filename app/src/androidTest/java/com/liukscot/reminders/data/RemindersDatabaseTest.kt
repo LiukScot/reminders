@@ -68,4 +68,41 @@ class RemindersDatabaseTest {
         val urgentTasks = repository.tasksByTag("urgent").first()
         assertEquals(setOf(milkId, giftId), urgentTasks.map { it.id }.toSet())
     }
+
+    @Test
+    fun tasksDueBetween_returnsOnlyTasksForTheSelectedDay() = runTest {
+        val listId = db.taskListDao().insert(TaskList(name = "Personal"))
+        val startOfDay = 1_752_364_800_000L
+        val endOfDay = startOfDay + 86_400_000L
+        val firstTaskId = db.taskDao().insert(
+            Task(listId = listId, title = "Morning task", dueAt = startOfDay, createdAt = 0),
+        )
+        val secondTaskId = db.taskDao().insert(
+            Task(listId = listId, title = "Evening task", dueAt = endOfDay - 1, createdAt = 0),
+        )
+        db.taskDao().insert(Task(listId = listId, title = "Tomorrow", dueAt = endOfDay, createdAt = 0))
+
+        val tasks = db.taskDao().getDueBetween(startOfDay, endOfDay).first()
+
+        assertEquals(listOf(firstTaskId, secondTaskId), tasks.map { it.id })
+    }
+
+    @Test
+    fun openTasksDueBefore_excludesCompletedAndSelectedDayTasks() = runTest {
+        val listId = db.taskListDao().insert(TaskList(name = "Personal"))
+        val startOfDay = 1_752_364_800_000L
+        val overdueId = db.taskDao().insert(
+            Task(listId = listId, title = "Overdue", dueAt = startOfDay - 1, createdAt = 0),
+        )
+        db.taskDao().insert(
+            Task(listId = listId, title = "Completed", dueAt = startOfDay - 2, completed = true, createdAt = 0),
+        )
+        db.taskDao().insert(
+            Task(listId = listId, title = "Today", dueAt = startOfDay, createdAt = 0),
+        )
+
+        val tasks = db.taskDao().getOpenDueBefore(startOfDay).first()
+
+        assertEquals(listOf(overdueId), tasks.map { it.id })
+    }
 }
