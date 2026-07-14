@@ -15,18 +15,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
@@ -54,6 +54,8 @@ import java.time.YearMonth
 import java.time.ZoneId
 
 private val PRIORITY_LABELS = listOf("None", "!", "!!", "!!!")
+private val SheetDismissDistance = 320.dp
+private val SheetDismissFlingSpeed = 10_000.dp
 
 @Composable
 private fun SectionLabel(text: String) {
@@ -66,11 +68,6 @@ private fun SectionLabel(text: String) {
     )
 }
 
-// Ref: Reminders App Mockup "New reminder" sheet (data-screen-label="New
-// reminder sheet"). One deliberate deviation: the mockup has no list-picker
-// UI (list inferred from screen context, falling back to a hardcoded list) —
-// per explicit user decision this sheet instead shows a list dropdown,
-// pre-selected from the active list or the configurable default-list setting.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReminderSheet(
@@ -78,6 +75,7 @@ fun ReminderSheet(
     existingTask: Task? = null,
     existingTags: List<String> = emptyList(),
     preselectedListId: Long?,
+    initialDate: LocalDate? = null,
     onDismiss: () -> Unit,
     onSave: (
         title: String,
@@ -101,13 +99,20 @@ fun ReminderSheet(
     val existingDateTime = remember(existingTask) {
         existingTask?.dueAt?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDateTime() }
     }
-    var dateEnabled by remember { mutableStateOf(existingTask?.dueAt != null) }
-    var selectedDate by remember { mutableStateOf(existingDateTime?.toLocalDate() ?: LocalDate.now()) }
+    var dateEnabled by remember { mutableStateOf(existingTask?.dueAt != null || initialDate != null) }
+    var selectedDate by remember { mutableStateOf(existingDateTime?.toLocalDate() ?: initialDate ?: LocalDate.now()) }
     var displayedMonth by remember { mutableStateOf(YearMonth.from(selectedDate)) }
     var timeEnabled by remember { mutableStateOf(existingTask?.hasDueTime ?: false) }
     var selectedTime by remember { mutableStateOf(existingDateTime?.toLocalTime() ?: LocalTime.of(9, 0)) }
-    var listMenuExpanded by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val density = LocalDensity.current
+    val sheetState = remember(density) {
+        SheetState(
+            skipPartiallyExpanded = true,
+            positionalThreshold = { with(density) { SheetDismissDistance.toPx() } },
+            velocityThreshold = { with(density) { SheetDismissFlingSpeed.toPx() } },
+            initialValue = SheetValue.Hidden,
+        )
+    }
     val fieldColors = TextFieldDefaults.colors(
         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -216,40 +221,22 @@ fun ReminderSheet(
                 }
             }
             SectionLabel("LIST")
-            Box {
-                // A TextField consumes taps for its own focus handling, so a
-                // plain `.clickable` on it never fires (verified on-device:
-                // the menu didn't open). `enabled = false` stops it from
-                // taking touch input at all; a transparent clickable Box on
-                // top opens the menu instead. Disabled colors are pinned to
-                // match the enabled look so it doesn't visually dim.
-                TextField(
-                    value = lists.firstOrNull { it.id == selectedListId }?.name.orEmpty(),
-                    onValueChange = {},
-                    enabled = false,
-                    trailingIcon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_chevron_right),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = fieldColors,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable { listMenuExpanded = true },
-                )
-                DropdownMenu(expanded = listMenuExpanded, onDismissRequest = { listMenuExpanded = false }) {
-                    lists.forEach { list ->
-                        DropdownMenuItem(
-                            text = { Text(list.name) },
-                            onClick = { selectedListId = list.id; listMenuExpanded = false },
-                        )
-                    }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                lists.forEach { list ->
+                    val selected = list.id == selectedListId
+                    Text(
+                        text = list.name,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                RoundedCornerShape(50),
+                            )
+                            .clickable { selectedListId = list.id }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                    )
                 }
             }
             SectionLabel("OTHER")

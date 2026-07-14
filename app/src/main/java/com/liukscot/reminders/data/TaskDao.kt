@@ -14,8 +14,17 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE listId = :listId ORDER BY priority DESC, createdAt DESC")
     fun getByList(listId: Long): Flow<List<Task>>
 
+    @Query("SELECT * FROM tasks WHERE dueAt >= :startInclusive AND dueAt < :endExclusive ORDER BY dueAt ASC, priority DESC, createdAt DESC")
+    fun getDueBetween(startInclusive: Long, endExclusive: Long): Flow<List<Task>>
+
+    @Query("SELECT * FROM tasks WHERE dueAt < :beforeExclusive AND completed = 0 ORDER BY dueAt ASC, priority DESC, createdAt DESC")
+    fun getOpenDueBefore(beforeExclusive: Long): Flow<List<Task>>
+
     @Query("SELECT * FROM tasks WHERE id = :id")
     suspend fun getById(id: Long): Task?
+
+    @Query("SELECT * FROM tasks WHERE hasDueTime = 1 AND completed = 0 AND dueAt >= :fromInclusive")
+    suspend fun getPendingRemindersFrom(fromInclusive: Long): List<Task>
 
     @Query("SELECT listId, COUNT(*) AS count FROM tasks WHERE completed = 0 GROUP BY listId")
     fun openCountsByList(): Flow<List<ListCount>>

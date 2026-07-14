@@ -27,9 +27,11 @@ import androidx.navigation.navArgument
 import com.liukscot.reminders.ui.navigation.Destination
 import com.liukscot.reminders.ui.navigation.FloatingNavBar
 import com.liukscot.reminders.ui.screens.ListsScreen
+import com.liukscot.reminders.ui.screens.DayScreen
 import com.liukscot.reminders.ui.screens.PlaceholderScreen
 import com.liukscot.reminders.ui.screens.SettingsScreen
 import com.liukscot.reminders.ui.screens.TaskListDetailScreen
+import com.liukscot.reminders.ui.screens.WeekScreen
 
 private const val LIST_DETAIL_ROUTE = "listDetail/{listId}"
 private fun listDetailRoute(listId: Long) = "listDetail/$listId"
@@ -91,7 +93,9 @@ fun RemindersApp(deepLinkListId: Long? = null) {
                 ListsScreen(onOpenList = { listId -> navController.navigate(listDetailRoute(listId)) })
             }
             composable(Destination.Settings.route) { SettingsScreen() }
-            Destination.entries.filter { it != Destination.Lists && it != Destination.Settings }.forEach { destination ->
+            composable(Destination.Day.route) { DayScreen() }
+            composable(Destination.Week.route) { WeekScreen() }
+            Destination.entries.filter { it != Destination.Lists && it != Destination.Day && it != Destination.Week && it != Destination.Settings }.forEach { destination ->
                 composable(destination.route) { PlaceholderScreen(destination.label) }
             }
             composable(
