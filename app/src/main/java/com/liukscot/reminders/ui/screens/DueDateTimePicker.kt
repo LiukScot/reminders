@@ -2,6 +2,8 @@ package com.liukscot.reminders.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +11,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -32,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -49,6 +54,7 @@ import java.time.YearMonth
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.sqrt
 
 // Android's default font padding adds asymmetric vertical space around
 // glyphs, which throws off centering in tight pill/wheel containers —
@@ -133,38 +139,41 @@ fun DueDateSection(
                     Row(modifier = Modifier.fillMaxWidth()) {
                         week.forEach { day ->
                             Box(
-                                modifier = Modifier.weight(1f).padding(1.dp).size(34.dp),
+                                modifier = Modifier.weight(1f).padding(2.dp).aspectRatio(1f),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 if (day != null) {
                                     val date = displayedMonth.atDay(day)
                                     val selected = date == selectedDate
                                     val isToday = date == today
-                                    Text(
-                                        text = day.toString(),
-                                        style = CenteredNumberStyle,
-                                        fontFamily = MonoFontFamily,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = when {
-                                            selected -> MaterialTheme.colorScheme.onPrimary
-                                            isToday -> MaterialTheme.colorScheme.primary
-                                            else -> MaterialTheme.colorScheme.onSurface
-                                        },
+                                    Box(
                                         modifier = Modifier
-                                            .fillMaxWidth()
+                                            .fillMaxSize()
                                             .background(
                                                 when {
                                                     selected -> MaterialTheme.colorScheme.primary
                                                     isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
                                                     else -> Color.Transparent
                                                 },
-                                                RoundedCornerShape(9.dp),
+                                                RoundedCornerShape(10.dp),
                                             )
-                                            .clickable { onDateSelected(date) }
-                                            .padding(vertical = 8.dp),
-                                        textAlign = TextAlign.Center,
-                                    )
+                                            .clickable { onDateSelected(date) },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = day.toString(),
+                                            style = CenteredNumberStyle,
+                                            fontFamily = MonoFontFamily,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = when {
+                                                selected -> MaterialTheme.colorScheme.onPrimary
+                                                isToday -> MaterialTheme.colorScheme.primary
+                                                else -> MaterialTheme.colorScheme.onSurface
+                                            },
+                                            textAlign = TextAlign.Center,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -202,6 +211,28 @@ private fun calendarCells(month: YearMonth): List<List<Int?>> {
 
 private val QUARTER_HOUR_TIMES = (0 until 96).map { LocalTime.MIDNIGHT.plusMinutes(it * 15L) }
 
+// Steepens the wheel's velocity→distance curve so a hard flick travels much further while gentle
+// swipes stay precise for single-step nudges. Below rampStart the fling is untouched; between
+// rampStart and rampEnd the boost ramps 1x→maxBoost. The ramp uses sqrt(t) (concave/front-loaded)
+// so medium-power swings already get most of the boost instead of sitting at the linear midpoint.
+// Thresholds are dp/s (converted to px/s at the call site) to feel the same across screen densities.
+private const val WheelFlingRampStartDpPerSec = 2000f
+private const val WheelFlingRampEndDpPerSec = 9000f
+private const val WheelFlingMaxBoost = 3f
+
+private class SteepFlingBehavior(
+    private val base: FlingBehavior,
+    private val rampStartPx: Float,
+    private val rampEndPx: Float,
+    private val maxBoost: Float,
+) : FlingBehavior {
+    override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+        val t = ((abs(initialVelocity) - rampStartPx) / (rampEndPx - rampStartPx)).coerceIn(0f, 1f)
+        val boosted = initialVelocity * (1f + (maxBoost - 1f) * sqrt(t))
+        return with(base) { performFling(boosted) }
+    }
+}
+
 private fun nearestQuarterHour(time: LocalTime): LocalTime {
     val roundedMinutes = ((time.toSecondOfDay() / 60 + 7) / 15 * 15) % (24 * 60)
     return LocalTime.of(roundedMinutes / 60, roundedMinutes % 60)
@@ -232,6 +263,16 @@ fun DueTimeSection(
                 val itemWidth = 64.dp
                 val sidePadding = (maxWidth - itemWidth) / 2
                 val listState = rememberLazyListState()
+                val density = LocalDensity.current
+                val snapFling = rememberSnapFlingBehavior(listState)
+                val wheelFling = remember(snapFling, density) {
+                    SteepFlingBehavior(
+                        base = snapFling,
+                        rampStartPx = with(density) { WheelFlingRampStartDpPerSec.dp.toPx() },
+                        rampEndPx = with(density) { WheelFlingRampEndDpPerSec.dp.toPx() },
+                        maxBoost = WheelFlingMaxBoost,
+                    )
+                }
                 val selectedIndex = remember(selectedTime) {
                     QUARTER_HOUR_TIMES.indexOf(nearestQuarterHour(selectedTime))
                 }
@@ -259,7 +300,7 @@ fun DueTimeSection(
                 )
                 LazyRow(
                     state = listState,
-                    flingBehavior = rememberSnapFlingBehavior(listState),
+                    flingBehavior = wheelFling,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(wheelHeight),
