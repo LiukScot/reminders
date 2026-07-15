@@ -35,4 +35,12 @@ data class Task(
     val priority: Int = 0,
     val completed: Boolean = false,
     val createdAt: Long,
+    // Recurrence: null recurrenceFreq means "does not repeat". recurrenceAnchor is the fixed
+    // date/time the cadence is computed from — rescheduling changes dueAt only, so the rule
+    // keeps ticking on its original schedule (e.g. "every Thursday" stays on Thursday even if
+    // one occurrence gets moved to Friday). See RecurrenceRule.kt.
+    val recurrenceFreq: String? = null,
+    val recurrenceInterval: Int = 1,
+    val recurrenceByDay: String? = null,
+    val recurrenceAnchor: Long? = null,
 )

@@ -69,20 +69,16 @@ class ListsViewModel(
         priority: Int,
         dueAt: Long?,
         hasDueTime: Boolean,
+        recurrenceFreq: String?,
+        recurrenceInterval: Int,
+        recurrenceByDay: String?,
+        recurrenceAnchor: Long?,
     ) {
         viewModelScope.launch {
-            val newTask = Task(
-                listId = listId,
-                title = title,
-                notes = notes,
-                flagged = flagged,
-                priority = priority,
-                dueAt = dueAt,
-                hasDueTime = hasDueTime,
-                createdAt = System.currentTimeMillis(),
+            val saved = repository.saveTask(
+                null, title, notes, listId, tags, flagged, priority, dueAt, hasDueTime,
+                recurrenceFreq, recurrenceInterval, recurrenceByDay, recurrenceAnchor,
             )
-            val saved = newTask.copy(id = repository.addTask(newTask))
-            repository.setTags(saved.id, tags)
             reminderScheduler.schedule(saved)
         }
     }

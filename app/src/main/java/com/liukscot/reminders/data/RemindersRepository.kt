@@ -45,5 +45,72 @@ class RemindersRepository(
 
     suspend fun updateTask(task: Task) = taskDao.update(task)
 
+    // Shared by every "New/Edit reminder" call site (Day, Week, Lists, list detail) — was
+    // duplicated four times before, each building the same Task and re-persisting tags.
+    suspend fun saveTask(
+        existing: Task?,
+        title: String,
+        notes: String?,
+        listId: Long,
+        tags: List<String>,
+        flagged: Boolean,
+        priority: Int,
+        dueAt: Long?,
+        hasDueTime: Boolean,
+        recurrenceFreq: String?,
+        recurrenceInterval: Int,
+        recurrenceByDay: String?,
+        recurrenceAnchor: Long?,
+    ): Task {
+        val saved = if (existing != null) {
+            existing.copy(
+                title = title,
+                notes = notes,
+                listId = listId,
+                flagged = flagged,
+                priority = priority,
+                dueAt = dueAt,
+                hasDueTime = hasDueTime,
+                recurrenceFreq = recurrenceFreq,
+                recurrenceInterval = recurrenceInterval,
+                recurrenceByDay = recurrenceByDay,
+                recurrenceAnchor = recurrenceAnchor,
+            ).also { taskDao.update(it) }
+        } else {
+            val newTask = Task(
+                listId = listId,
+                title = title,
+                notes = notes,
+                flagged = flagged,
+                priority = priority,
+                dueAt = dueAt,
+                hasDueTime = hasDueTime,
+                createdAt = System.currentTimeMillis(),
+                recurrenceFreq = recurrenceFreq,
+                recurrenceInterval = recurrenceInterval,
+                recurrenceByDay = recurrenceByDay,
+                recurrenceAnchor = recurrenceAnchor,
+            )
+            newTask.copy(id = taskDao.insert(newTask))
+        }
+        setTags(saved.id, tags)
+        return saved
+    }
+
+    // A recurring task never stays completed: finishing an occurrence advances it to the next
+    // one per its rule (anchor included, so the cadence keeps ticking on schedule) and reopens
+    // it, instead of marking the row done. Un-completing follows the plain path unconditionally.
+    suspend fun toggleComplete(task: Task): Task {
+        val rule = RecurrenceRule.fromTask(task)
+        val updated = if (!task.completed && rule != null && task.recurrenceAnchor != null) {
+            val next = nextOccurrence(task.recurrenceAnchor, rule)
+            task.copy(dueAt = next, recurrenceAnchor = next, completed = false)
+        } else {
+            task.copy(completed = !task.completed)
+        }
+        taskDao.update(updated)
+        return updated
+    }
+
     suspend fun deleteTask(task: Task) = taskDao.delete(task)
 }

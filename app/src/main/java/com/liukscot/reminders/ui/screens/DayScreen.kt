@@ -286,8 +286,11 @@ fun DayScreen(viewModel: DayViewModel = rememberDayViewModel()) {
             preselectedListId = state.lists.firstOrNull()?.id,
             initialDate = target.date,
             onDismiss = { sheetTarget = ReminderSheetTarget.None },
-            onSave = { title, notes, listId, tags, flagged, priority, dueAt, hasDueTime ->
-                viewModel.saveTask(null, title, notes, listId, tags, flagged, priority, dueAt, hasDueTime)
+            onSave = { title, notes, listId, tags, flagged, priority, dueAt, hasDueTime, recFreq, recInterval, recByDay, recAnchor ->
+                viewModel.saveTask(
+                    null, title, notes, listId, tags, flagged, priority, dueAt, hasDueTime,
+                    recFreq, recInterval, recByDay, recAnchor,
+                )
                 sheetTarget = ReminderSheetTarget.None
             },
         )
@@ -297,8 +300,11 @@ fun DayScreen(viewModel: DayViewModel = rememberDayViewModel()) {
             existingTags = target.tags,
             preselectedListId = target.task.listId,
             onDismiss = { sheetTarget = ReminderSheetTarget.None },
-            onSave = { title, notes, listId, tags, flagged, priority, dueAt, hasDueTime ->
-                viewModel.saveTask(target.task, title, notes, listId, tags, flagged, priority, dueAt, hasDueTime)
+            onSave = { title, notes, listId, tags, flagged, priority, dueAt, hasDueTime, recFreq, recInterval, recByDay, recAnchor ->
+                viewModel.saveTask(
+                    target.task, title, notes, listId, tags, flagged, priority, dueAt, hasDueTime,
+                    recFreq, recInterval, recByDay, recAnchor,
+                )
                 sheetTarget = ReminderSheetTarget.None
             },
         )
