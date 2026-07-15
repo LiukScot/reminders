@@ -61,41 +61,23 @@ class TaskListDetailViewModel(
         priority: Int,
         dueAt: Long?,
         hasDueTime: Boolean,
+        recurrenceFreq: String?,
+        recurrenceInterval: Int,
+        recurrenceByDay: String?,
+        recurrenceAnchor: Long?,
     ) {
         viewModelScope.launch {
-            val saved = if (existing != null) {
-                existing.copy(
-                    title = title,
-                    notes = notes,
-                    listId = listId,
-                    flagged = flagged,
-                    priority = priority,
-                    dueAt = dueAt,
-                    hasDueTime = hasDueTime,
-                ).also { repository.updateTask(it) }
-            } else {
-                val newTask = Task(
-                    listId = listId,
-                    title = title,
-                    notes = notes,
-                    flagged = flagged,
-                    priority = priority,
-                    dueAt = dueAt,
-                    hasDueTime = hasDueTime,
-                    createdAt = System.currentTimeMillis(),
-                )
-                newTask.copy(id = repository.addTask(newTask))
-            }
-            repository.setTags(saved.id, tags)
+            val saved = repository.saveTask(
+                existing, title, notes, listId, tags, flagged, priority, dueAt, hasDueTime,
+                recurrenceFreq, recurrenceInterval, recurrenceByDay, recurrenceAnchor,
+            )
             reminderScheduler.schedule(saved)
         }
     }
 
     fun toggleComplete(task: Task) {
         viewModelScope.launch {
-            val updated = task.copy(completed = !task.completed)
-            repository.updateTask(updated)
-            reminderScheduler.schedule(updated)
+            reminderScheduler.schedule(repository.toggleComplete(task))
         }
     }
 
