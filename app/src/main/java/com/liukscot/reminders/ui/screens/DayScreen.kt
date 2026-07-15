@@ -515,14 +515,29 @@ internal fun DayTaskRow(
             maxLines = 1,
             modifier = Modifier.weight(1f),
         )
-        if (trailingText != null) {
-            Text(
-                trailingText,
-                fontFamily = MonoFontFamily,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = trailingColor,
-            )
+        if (trailingText != null || task.recurrenceFreq != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (task.recurrenceFreq != null) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_repeat),
+                        contentDescription = "Repeats",
+                        tint = trailingColor,
+                        modifier = Modifier.size(11.dp),
+                    )
+                }
+                if (trailingText != null) {
+                    Text(
+                        trailingText,
+                        fontFamily = MonoFontFamily,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = trailingColor,
+                    )
+                }
+            }
         }
     }
 }
