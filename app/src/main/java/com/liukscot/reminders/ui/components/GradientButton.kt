@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
@@ -50,6 +51,40 @@ import com.liukscot.reminders.ui.theme.InkPressed
 // at 0%).
 private val EaseStandard = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 private val EaseEmphasized = CubicBezierEasing(0.3f, 0f, 0f, 1f)
+
+// The design system's idle "flow-drift" as a reusable background for non-button shapes (the voice
+// mic FAB and orb). Same oversized (220%) Ember gradient sliding there-and-back that GradientButton
+// uses at rest — no press surge, since these aren't the primary CTA.
+@Composable
+fun Modifier.flowGradientBackground(shape: Shape): Modifier {
+    var sizePx by remember { mutableStateOf(IntSize.Zero) }
+    val position = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            position.animateTo(1f, tween(durationMillis = 4500, easing = EaseStandard))
+            position.animateTo(0f, tween(durationMillis = 4500, easing = EaseStandard))
+        }
+    }
+    val width = sizePx.width.toFloat()
+    val height = sizePx.height.toFloat()
+    val originX = -1.2f * width * position.value
+    val originY = -0.6f * height
+    val brush = if (width > 0f) {
+        Brush.linearGradient(
+            0f to EmberFlowA,
+            0.45f to EmberFlowB,
+            0.9f to EmberFlowA,
+            start = Offset(originX, originY),
+            end = Offset(originX + width * 2.2f, originY + height * 2.2f),
+        )
+    } else {
+        Brush.linearGradient(listOf(EmberFlowA, EmberFlowB))
+    }
+    return this
+        .onSizeChanged { sizePx = it }
+        .clip(shape)
+        .background(brush)
+}
 
 @Composable
 fun GradientButton(

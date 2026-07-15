@@ -103,8 +103,8 @@ fun ListsScreen(
             }
         }
 
-        // Ref: mockup's plain "+" FAB — ink-2 circle, accent-solid icon (the
-        // gradient mic button next to it is voice capture, not built yet).
+        // Ref: mockup's plain "+" FAB — ink-2 circle, accent-solid icon, with
+        // the gradient voice-capture mic button to its left.
         // 88dp mirrors the mockup's FAB bottom:88 vs floating nav's
         // bottom:10/height:62 — clears the nav bar with the same gap.
         FloatingActionButton(
@@ -119,6 +119,14 @@ fun ListsScreen(
         ) {
             Icon(painterResource(R.drawable.ic_plus), contentDescription = "Add reminder")
         }
+        // Sits just left of the "+" FAB (18 end + 56 FAB + 12 gap = 86dp).
+        VoiceCaptureButton(
+            onAddReminder = { draft, listId -> viewModel.addVoiceTask(draft, listId) },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(end = 86.dp, bottom = 88.dp),
+        )
     }
 
     when (val target = editing) {
