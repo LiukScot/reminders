@@ -53,10 +53,17 @@ dependencies {
     implementation("androidx.room:room-ktx:2.8.4")
     ksp("androidx.room:room-compiler:2.8.4")
     implementation("androidx.datastore:datastore-preferences:1.2.1")
+    // Voice → AI provider (#19): HTTP transport + on-device encrypted API-key storage.
+    // JSON is built/parsed with org.json (Android stdlib) — no extra serialization dep.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("androidx.security:security-crypto:1.0.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     testImplementation("junit:junit:4.13.2")
+    // org.json ships only as a non-functional stub in the Android SDK; unit tests that exercise it
+    // (VoiceTaskDraft parsing) need the real implementation. Production uses Android's built-in one.
+    testImplementation("org.json:json:20250107")
 
     androidTestImplementation("androidx.room:room-testing:2.8.4")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")

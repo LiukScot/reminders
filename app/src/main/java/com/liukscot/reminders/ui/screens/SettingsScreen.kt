@@ -13,11 +13,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,6 +51,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
     val state by viewModel.uiState.collectAsState()
     var pickerOpen by remember { mutableStateOf(false) }
     var providerPickerOpen by remember { mutableStateOf(false) }
+    var keyDialogOpen by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         Text(
@@ -94,8 +99,15 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             icon = R.drawable.ic_sparkles,
             title = "AI model",
             value = state.aiProvider.displayName,
-            shape = groupedRowShape(0, 1, bigRadius = 14.dp, smallRadius = 4.dp),
+            shape = groupedRowShape(0, 2, bigRadius = 14.dp, smallRadius = 4.dp),
             onClick = { providerPickerOpen = true },
+        )
+        SettingsRow(
+            icon = R.drawable.ic_key,
+            title = "${state.aiProvider.displayName} API key",
+            value = state.apiKeyHint ?: "Not set",
+            shape = groupedRowShape(1, 2, bigRadius = 14.dp, smallRadius = 4.dp),
+            onClick = { keyDialogOpen = true },
         )
     }
 
@@ -112,6 +124,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             selected = state.aiProvider,
             onDismiss = { providerPickerOpen = false },
             onSelect = { provider -> viewModel.setAiProvider(provider); providerPickerOpen = false },
+        )
+    }
+    if (keyDialogOpen) {
+        ApiKeyDialog(
+            providerName = state.aiProvider.displayName,
+            onDismiss = { keyDialogOpen = false },
+            onSave = { key -> viewModel.setApiKey(key); keyDialogOpen = false },
         )
     }
 }
@@ -152,6 +171,36 @@ private fun AiProviderPickerDialog(
             }
         },
         confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+@Composable
+private fun ApiKeyDialog(
+    providerName: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var key by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("$providerName API key") },
+        text = {
+            OutlinedTextField(
+                value = key,
+                onValueChange = { key = it },
+                singleLine = true,
+                placeholder = { Text("Paste your key") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(key) }, enabled = key.isNotBlank()) { Text("Save") }
+        },
+        dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )

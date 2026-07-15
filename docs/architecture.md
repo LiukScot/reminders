@@ -23,19 +23,29 @@
 
 ## Voice / AI
 
+- Voice capture is **on-device speech recognition (Android `SpeechRecognizer`)**
+  for a live transcript (the mockup shows the text growing as you speak), then the
+  finished transcript **text** is sent to the AI provider for structured parsing
+  (title/date/time/recurrence). This replaces the earlier audio-native plan
+  (Voxtral/Gemini audio-in): `SpeechRecognizer` is a free OS service with no model
+  to host, so it doesn't reintroduce the maintenance burden the audio-native choice
+  was avoiding, and it's the only way to get the live transcript the mockup wants.
 - The AI provider is user-configurable (Settings → AI model), not hardcoded —
-  full reasoning in [requirements.md](requirements.md). Default: Mistral (Voxtral
-  Small). Second option: Google (Gemini). Both take audio in, return structured
-  JSON (title/date/time/recurrence) in a single call — no provider-specific
-  pipeline shape difference, so the app-side integration is a single interface
-  with two implementations, not two divergent code paths.
+  full reasoning in [requirements.md](requirements.md). Default: Mistral. Second
+  option: Google (Gemini). Both take the transcript text and return the same
+  JSON shape, so the app-side integration is a single interface with two
+  implementations, not two divergent code paths.
 - Selection persisted the same way as the default-list setting (DataStore
   Preferences, see `SettingsRepository`) — a single preference key, no new
   storage mechanism.
-- Called directly from the app for now; to be reevaluated if a backend/proxy layer
-  is needed (e.g. to avoid exposing API keys in the client — **point to
-  investigate before writing the voice feature's code**, not yet decided). With
-  two providers this now means two client-side keys to protect, not one.
+- **Decided (#19): called directly from the app, no backend proxy.** This is a
+  single-user personal app: the key is the user's own free-tier key on the user's
+  own device, not a shared secret embedded in a widely-distributed binary, so the
+  "exposed key in client" risk that motivates a proxy does not apply. A proxy would
+  mean standing up and maintaining a server that otherwise doesn't exist, for no
+  concrete gain. Keys are stored on-device with `EncryptedSharedPreferences`
+  (androidx.security-crypto), one entry per provider. Revisit only if the app ever
+  ships to third parties or a shared server appears (see self-hosting, #33).
 
 ## To define later
 
