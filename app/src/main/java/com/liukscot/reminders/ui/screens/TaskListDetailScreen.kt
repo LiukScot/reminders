@@ -364,13 +364,27 @@ private fun TaskGroupCard(
                     }
                 }
                 val metaText = (listOfNotNull(dueText, task.notes) + group.tags.map { "#$it" }).joinToString(" · ")
-                if (metaText.isNotEmpty()) {
-                    Text(
-                        text = metaText,
-                        fontSize = 12.5.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                val recurring = task.recurrenceFreq != null
+                if (metaText.isNotEmpty() || recurring) {
+                    Row(
                         modifier = Modifier.padding(top = 2.dp),
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        if (recurring) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_repeat),
+                                contentDescription = "Repeats",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(12.dp),
+                            )
+                        }
+                        Text(
+                            text = metaText,
+                            fontSize = 12.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
