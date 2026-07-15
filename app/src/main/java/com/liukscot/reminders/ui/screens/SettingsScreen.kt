@@ -6,14 +6,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -31,16 +35,18 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.liukscot.reminders.R
+import com.liukscot.reminders.data.AiProvider
 import com.liukscot.reminders.ui.theme.MonoFontFamily
 
 // Ref: Reminders App Mockup "Settings" screen (data-screen-label="Settings")
-// for section/row styling. Only the "Default list" row is built here — the
-// mockup's other sections (backup, Gemini key, notifications) belong to
-// their own not-yet-built issues.
+// for section/row styling. Only the "Default list" and "AI model" rows are
+// built here — the mockup's other sections (backup, API key, notifications)
+// belong to their own not-yet-built issues.
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
     val state by viewModel.uiState.collectAsState()
     var pickerOpen by remember { mutableStateOf(false) }
+    var providerPickerOpen by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         Text(
@@ -74,6 +80,23 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             shape = groupedRowShape(0, 1, bigRadius = 14.dp, smallRadius = 4.dp),
             onClick = { pickerOpen = true },
         )
+
+        Spacer(modifier = Modifier.height(22.dp))
+        Text(
+            text = "VOICE & AI",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.3.sp,
+            color = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        SettingsRow(
+            icon = R.drawable.ic_sparkles,
+            title = "AI model",
+            value = state.aiProvider.displayName,
+            shape = groupedRowShape(0, 1, bigRadius = 14.dp, smallRadius = 4.dp),
+            onClick = { providerPickerOpen = true },
+        )
     }
 
     if (pickerOpen) {
@@ -84,6 +107,54 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             onSelect = { id -> viewModel.setDefaultList(id); pickerOpen = false },
         )
     }
+    if (providerPickerOpen) {
+        AiProviderPickerDialog(
+            selected = state.aiProvider,
+            onDismiss = { providerPickerOpen = false },
+            onSelect = { provider -> viewModel.setAiProvider(provider); providerPickerOpen = false },
+        )
+    }
+}
+
+@Composable
+private fun AiProviderPickerDialog(
+    selected: AiProvider,
+    onDismiss: () -> Unit,
+    onSelect: (AiProvider) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("AI model") },
+        text = {
+            Column {
+                AiProvider.entries.forEach { provider ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(provider) }
+                            .padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (provider == selected) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_check),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.size(18.dp))
+                        }
+                        Text(text = provider.displayName, color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable
