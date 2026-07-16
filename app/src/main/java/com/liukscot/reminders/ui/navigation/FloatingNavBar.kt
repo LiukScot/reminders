@@ -31,7 +31,8 @@ import androidx.compose.ui.unit.sp
 import com.liukscot.reminders.ui.theme.Dimens
 
 // Floating bottom nav — detached rounded bar over the content, matching
-// Reminders App Mockup (left/right 12, bottom 10, height 62, radius 24).
+// Reminders App Mockup (bottom 10, height 62, radius 24). The mockup's left/right 12 is dropped
+// for the screen edge every other screen uses, so the bar lines up with the content above it.
 @Composable
 fun FloatingNavBar(
     current: Destination,
@@ -41,7 +42,7 @@ fun FloatingNavBar(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = Dimens.screenEdge, vertical = 10.dp)
             .height(Dimens.navHeight),
         shape = RoundedCornerShape(Dimens.radiusXl),
         color = MaterialTheme.colorScheme.surface,

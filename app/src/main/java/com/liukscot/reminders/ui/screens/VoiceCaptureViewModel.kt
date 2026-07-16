@@ -6,12 +6,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.liukscot.reminders.RemindersApplication
+import com.liukscot.reminders.data.RecurrenceRule
 import com.liukscot.reminders.data.RemindersRepository
 import com.liukscot.reminders.data.SettingsRepository
 import com.liukscot.reminders.data.SpeechTranscriber
 import com.liukscot.reminders.data.VoiceTaskDraft
 import com.liukscot.reminders.data.VoiceTaskParsers
+import com.liukscot.reminders.notifications.ReminderScheduler
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +43,7 @@ class VoiceCaptureViewModel(
     private val parsers: VoiceTaskParsers,
     private val settingsRepository: SettingsRepository,
     private val repository: RemindersRepository,
+    private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
     private val _state = MutableStateFlow<VoiceCaptureState>(VoiceCaptureState.Idle)
     val state: StateFlow<VoiceCaptureState> = _state.asStateFlow()
@@ -71,6 +77,30 @@ class VoiceCaptureViewModel(
         parseJob?.cancel()
         transcriber.destroy()
         _state.value = VoiceCaptureState.Idle
+    }
+
+    // Saves the confirmed draft to its resolved list and closes the overlay. Self-contained so the
+    // mic button drops into any screen (Lists/Day/Week) without each wiring its own save path. A
+    // time or recurrence with no explicit date anchors on today, else dueAt stays null and is lost.
+    fun addReminder() {
+        val result = _state.value as? VoiceCaptureState.Result ?: return
+        val listId = result.listId ?: return
+        val draft = result.draft
+        val rule = draft.recurrence
+        val effectiveDate = draft.date ?: if (draft.time != null || rule != null) LocalDate.now() else null
+        val dueAt = effectiveDate?.let {
+            LocalDateTime.of(it, draft.time ?: LocalTime.MIDNIGHT)
+                .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        }
+        viewModelScope.launch {
+            val saved = repository.saveTask(
+                null, draft.title, null, listId, emptyList(), false, 0, dueAt, draft.time != null,
+                rule?.frequency?.name, rule?.interval ?: 1, rule?.byDay?.let(RecurrenceRule::encodeByDay),
+                if (rule != null) dueAt else null,
+            )
+            reminderScheduler.schedule(saved)
+        }
+        dismiss()
     }
 
     private fun parse(transcript: String) {
@@ -110,6 +140,8 @@ class VoiceCaptureViewModel(
 fun rememberVoiceCaptureViewModel(): VoiceCaptureViewModel {
     val app = LocalContext.current.applicationContext as RemindersApplication
     return viewModel {
-        VoiceCaptureViewModel(SpeechTranscriber(app), app.voiceTaskParsers, app.settingsRepository, app.repository)
+        VoiceCaptureViewModel(
+            SpeechTranscriber(app), app.voiceTaskParsers, app.settingsRepository, app.repository, app.reminderScheduler,
+        )
     }
 }

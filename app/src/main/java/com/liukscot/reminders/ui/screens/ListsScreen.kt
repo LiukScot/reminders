@@ -9,15 +9,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -103,29 +102,14 @@ fun ListsScreen(
             }
         }
 
-        // Ref: mockup's plain "+" FAB — ink-2 circle, accent-solid icon, with
-        // the gradient voice-capture mic button to its left.
         // 88dp mirrors the mockup's FAB bottom:88 vs floating nav's
         // bottom:10/height:62 — clears the nav bar with the same gap.
-        FloatingActionButton(
-            onClick = { editing = EditTarget.NewTask },
-            shape = CircleShape,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.primary,
+        ReminderActionButtons(
+            onAddReminder = { editing = EditTarget.NewTask },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
                 .padding(end = 18.dp, bottom = 88.dp),
-        ) {
-            Icon(painterResource(R.drawable.ic_plus), contentDescription = "Add reminder")
-        }
-        // Sits just left of the "+" FAB (18 end + 56 FAB + 12 gap = 86dp).
-        VoiceCaptureButton(
-            onAddReminder = { draft, listId -> viewModel.addVoiceTask(draft, listId) },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(end = 86.dp, bottom = 88.dp),
         )
     }
 
@@ -182,13 +166,14 @@ private fun ListRow(
             .padding(bottom = 2.dp)
             .background(MaterialTheme.colorScheme.surface, shape)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = 14.dp, vertical = 11.dp),
+            .heightIn(min = 72.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(48.dp)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f), RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
@@ -196,7 +181,7 @@ private fun ListRow(
                 painter = painterResource(ListIcons.resolve(entry.list.icon)),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(24.dp),
             )
         }
         Text(

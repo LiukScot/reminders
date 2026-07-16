@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -102,6 +103,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             shape = groupedRowShape(0, 2, bigRadius = 14.dp, smallRadius = 4.dp),
             onClick = { providerPickerOpen = true },
         )
+        // 2dp hairline between grouped rows, matching the "My Lists" rows so the group reads as one.
+        Spacer(modifier = Modifier.height(2.dp))
         SettingsRow(
             icon = R.drawable.ic_key,
             title = "${state.aiProvider.displayName} API key",
@@ -213,13 +216,14 @@ private fun SettingsRow(icon: Int, title: String, value: String, shape: Shape, o
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 11.dp),
+            .heightIn(min = 72.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(48.dp)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f), RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
@@ -227,7 +231,7 @@ private fun SettingsRow(icon: Int, title: String, value: String, shape: Shape, o
                 painter = painterResource(icon),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(24.dp),
             )
         }
         Text(

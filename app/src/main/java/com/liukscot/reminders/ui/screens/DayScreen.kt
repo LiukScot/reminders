@@ -29,12 +29,12 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -96,7 +96,10 @@ internal sealed interface ReminderSheetTarget {
 }
 
 @Composable
-fun DayScreen(viewModel: DayViewModel = rememberDayViewModel()) {
+fun DayScreen(resetToTodayTick: Int = 0, viewModel: DayViewModel = rememberDayViewModel()) {
+    LaunchedEffect(resetToTodayTick) {
+        if (resetToTodayTick > 0) viewModel.selectDate(LocalDate.now())
+    }
     val state by viewModel.uiState.collectAsState()
     var sheetTarget by remember { mutableStateOf<ReminderSheetTarget>(ReminderSheetTarget.None) }
     var draggedTask by remember { mutableStateOf<Task?>(null) }
@@ -160,7 +163,7 @@ fun DayScreen(viewModel: DayViewModel = rememberDayViewModel()) {
             .onGloballyPositioned { containerTop = it.boundsInRoot().top }
             .drawBehind {
                 if (highlightAlpha <= 0f) return@drawBehind
-                val marginX = (Dimens.screenEdge + Dimens.sp3).toPx()
+                val marginX = Dimens.screenEdge.toPx()
                 val top = highlightTop - containerTop
                 val bottom = highlightBottom - containerTop
                 if (bottom <= top) return@drawBehind
@@ -177,14 +180,14 @@ fun DayScreen(viewModel: DayViewModel = rememberDayViewModel()) {
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = Dimens.screenEdge, top = 10.dp, end = Dimens.screenEdge, bottom = 165.dp),
         ) {
-            item(key = "day-header") { DayHeader(state.selectedDate, viewModel::selectDate) }
+            item(key = "day-header") { DayHeader(state.selectedDate, viewModel::selectDate, resetToTodayTick) }
             if (state.selectedDate == LocalDate.now() && state.overdueTasks.isNotEmpty()) {
                 item(key = "overdue-header") {
                     Column(
                         Modifier
                             .animateItem()
                             .fillMaxWidth()
-                            .padding(horizontal = Dimens.sp3, vertical = Dimens.sp3),
+                            .padding(vertical = Dimens.sp3),
                     ) {
                         OverdueHeaderRow()
                     }
@@ -202,7 +205,6 @@ fun DayScreen(viewModel: DayViewModel = rememberDayViewModel()) {
                         onClick = { sheetTarget = ReminderSheetTarget.Edit(task, state.tagsByTaskId[task.id].orEmpty()) },
                         modifier = Modifier
                             .animateItem()
-                            .padding(horizontal = Dimens.sp3)
                             .padding(top = if (index == 0) 0.dp else 6.dp),
                     )
                 }
@@ -216,7 +218,6 @@ fun DayScreen(viewModel: DayViewModel = rememberDayViewModel()) {
                     Column(
                         Modifier
                             .animateItem()
-                            .padding(horizontal = Dimens.sp3)
                             .fillMaxWidth()
                             .onGloballyPositioned {
                                 val bounds = it.boundsInRoot()
@@ -249,7 +250,6 @@ fun DayScreen(viewModel: DayViewModel = rememberDayViewModel()) {
                         onClick = { sheetTarget = ReminderSheetTarget.Edit(task, state.tagsByTaskId[task.id].orEmpty()) },
                         modifier = Modifier
                             .animateItem()
-                            .padding(horizontal = Dimens.sp3)
                             .padding(top = if (index == 0) 0.dp else 6.dp)
                             .then(
                                 if (index == tasks.lastIndex) {
@@ -265,18 +265,13 @@ fun DayScreen(viewModel: DayViewModel = rememberDayViewModel()) {
         }
         }
 
-        FloatingActionButton(
-            onClick = { sheetTarget = ReminderSheetTarget.New(state.selectedDate) },
-            shape = CircleShape,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.primary,
+        ReminderActionButtons(
+            onAddReminder = { sheetTarget = ReminderSheetTarget.New(state.selectedDate) },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
                 .padding(end = Dimens.screenEdge, bottom = 88.dp),
-        ) {
-            Icon(painterResource(R.drawable.ic_plus), contentDescription = "Add reminder")
-        }
+        )
     }
 
     when (val target = sheetTarget) {
@@ -312,10 +307,15 @@ fun DayScreen(viewModel: DayViewModel = rememberDayViewModel()) {
 }
 
 @Composable
-private fun DayHeader(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Unit) {
+private fun DayHeader(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Unit, resetToTodayTick: Int) {
     val today = LocalDate.now()
     val firstWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusWeeks(520)
     val pagerState = rememberPagerState(initialPage = 520, pageCount = { 1_041 })
+    // Selecting today is not enough — the week strip is its own pager and would stay on whatever
+    // week the user had swiped to.
+    LaunchedEffect(resetToTodayTick) {
+        if (resetToTodayTick > 0) pagerState.animateScrollToPage(520)
+    }
     val title = when (selectedDate) {
         today -> "Today"
         today.plusDays(1) -> "Tomorrow"
@@ -329,7 +329,7 @@ private fun DayHeader(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Un
             lineHeight = 36.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = (-0.5).sp,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(top = Dimens.sp2, bottom = 2.dp),
         )
         Text(

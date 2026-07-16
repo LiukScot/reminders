@@ -22,7 +22,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -141,18 +140,13 @@ fun TaskListDetailScreen(
             }
         }
 
-        FloatingActionButton(
-            onClick = { editing = DetailEditTarget.NewTask },
-            shape = CircleShape,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.primary,
+        ReminderActionButtons(
+            onAddReminder = { editing = DetailEditTarget.NewTask },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
                 .padding(end = 18.dp, bottom = 18.dp),
-        ) {
-            Icon(painterResource(R.drawable.ic_plus), contentDescription = "Add reminder")
-        }
+        )
     }
 
     when (val target = editing) {
