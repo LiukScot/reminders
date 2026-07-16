@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -158,13 +161,14 @@ fun ReminderSheet(
     var usingCustomRecurrence by remember { mutableStateOf(existingRule?.let(::isCustomRule) ?: false) }
     var showCustomRecurrenceSheet by remember { mutableStateOf(false) }
     // Issue #18: recognize date/time/recurrence phrases in the title (Italian first, English
-    // second — see ReminderTextParser). As the user types we mirror any recognized phrase into
-    // the sheet's own controls (date/time/repeat activate live) while the raw text stays put and
-    // highlighted; pressing Enter only strips the phrase out of the title. Splitting it this way
-    // means the pickers light up regardless of whether the soft keyboard delivers the IME "Done"
-    // action, and spaces stay editable because the title text is never rewritten mid-typing.
-    fun previewTitleParsing(raw: String) {
-        val parsed = parseReminderText(raw)
+    // second — see ReminderTextParser). While typing, the recognized phrase is only highlighted
+    // (visual transformation below); pressing Enter commits — it lifts the phrase into the sheet's
+    // own controls and strips it from the title. Nothing changes until Enter, so a half-typed word
+    // doesn't flip the pickers, and spaces stay editable because the text isn't rewritten mid-typing.
+    fun commitTitleParsing() {
+        val parsed = parseReminderText(title)
+        if (parsed.matchedRanges.isEmpty()) return
+        title = parsed.cleanTitle
         parsed.date?.let {
             selectedDate = it
             dateEnabled = true
@@ -173,6 +177,9 @@ fun ReminderSheet(
         parsed.time?.let {
             selectedTime = it
             timeEnabled = true
+            // A time needs a date to hang on, and the TIME section only shows when dateEnabled —
+            // so enabling a time implies today unless a date was also parsed.
+            dateEnabled = true
         }
         parsed.recurrence?.let { rule ->
             recurrenceFreq = rule.frequency
@@ -180,10 +187,6 @@ fun ReminderSheet(
             recurrenceByDay = rule.byDay
             usingCustomRecurrence = isCustomRule(rule)
         }
-    }
-    fun stripParsedPhrases() {
-        val parsed = parseReminderText(title)
-        if (parsed.matchedRanges.isNotEmpty()) title = parsed.cleanTitle
     }
     val highlightBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
     val highlightFg = MaterialTheme.colorScheme.primary
@@ -228,6 +231,12 @@ fun ReminderSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
+        // The sheet grows to the full window, so by default its surface runs behind the status bar
+        // and only the *content* is inset — the card looks like it has no top edge and the scroll
+        // viewport reads as a second window underneath. Cap the surface at the status bar instead,
+        // and leave the content only the bottom (gesture bar) inset.
+        modifier = Modifier.statusBarsPadding(),
+        contentWindowInsets = { WindowInsets.navigationBars },
     ) {
         Column(
             modifier = Modifier
@@ -265,13 +274,13 @@ fun ReminderSheet(
             }
             TextField(
                 value = title,
-                onValueChange = { title = it; previewTitleParsing(it) },
+                onValueChange = { title = it },
                 placeholder = { Text("What do you need to do?", fontSize = 16.sp, fontWeight = FontWeight.SemiBold) },
                 textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
                 singleLine = true,
                 visualTransformation = nlpHighlight,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { stripParsedPhrases() }),
+                keyboardActions = KeyboardActions(onDone = { commitTitleParsing() }),
                 shape = RoundedCornerShape(12.dp),
                 colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(),
@@ -409,6 +418,9 @@ fun ReminderSheet(
             GradientButton(
                 text = if (existingTask != null) "Save changes" else "Add reminder",
                 onClick = {
+                    // Apply any still-typed phrase ("... alle 18") even if the user taps Save without
+                    // pressing Enter first; it's idempotent once the title is already clean.
+                    commitTitleParsing()
                     val listId = selectedListId
                     if (title.isNotBlank() && listId != null) {
                         val tags = tagsText.split(" ").map { it.trim() }.filter { it.isNotEmpty() }

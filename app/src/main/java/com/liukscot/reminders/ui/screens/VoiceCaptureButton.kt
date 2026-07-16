@@ -27,12 +27,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,19 +53,42 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.liukscot.reminders.R
 import com.liukscot.reminders.data.RecurrenceRule
-import com.liukscot.reminders.data.VoiceTaskDraft
 import com.liukscot.reminders.ui.components.GradientButton
 import com.liukscot.reminders.ui.components.flowGradientBackground
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+// Stock-Android FAB stack: rounded-square buttons in a vertical column, "+" on top, voice mic at
+// the bottom where the thumb lands.
+private val FabShape = RoundedCornerShape(20.dp)
+private val FabSize = 64.dp
+
+@Composable
+fun ReminderActionButtons(onAddReminder: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        FloatingActionButton(
+            onClick = onAddReminder,
+            shape = FabShape,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(FabSize),
+        ) {
+            Icon(painterResource(R.drawable.ic_plus), contentDescription = "Add reminder")
+        }
+        VoiceCaptureButton()
+    }
+}
+
 // Ref: Reminders App Mockup — the gradient mic on Home plus the full-screen voice overlay
 // (Listening… with live transcript, then a NEW REMINDER confirmation card). Owns the mic FAB, the
 // RECORD_AUDIO permission, and the overlay; hands the confirmed draft back to the caller to save.
 @Composable
 fun VoiceCaptureButton(
-    onAddReminder: (VoiceTaskDraft, Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: VoiceCaptureViewModel = rememberVoiceCaptureViewModel(),
 ) {
@@ -72,8 +100,8 @@ fun VoiceCaptureButton(
 
     Box(
         modifier = modifier
-            .size(56.dp)
-            .flowGradientBackground(CircleShape)
+            .size(FabSize)
+            .flowGradientBackground(FabShape)
             .clickable {
                 val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
                     PackageManager.PERMISSION_GRANTED
@@ -99,9 +127,45 @@ fun VoiceCaptureButton(
                 onStop = { viewModel.stopListening() },
                 onRetry = { viewModel.retry() },
                 onDismiss = { viewModel.dismiss() },
-                onAdd = { draft, listId -> onAddReminder(draft, listId); viewModel.dismiss() },
+                onAdd = { viewModel.addReminder() },
             )
         }
+    }
+}
+
+// The overlay on its own, with no app screen behind it: the Quick Settings tile's entry point.
+// Starts listening as soon as it appears and closes itself once the capture ends.
+@Composable
+fun VoiceCaptureScreen(
+    onFinish: () -> Unit,
+    viewModel: VoiceCaptureViewModel = rememberVoiceCaptureViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) viewModel.start() else onFinish() }
+
+    LaunchedEffect(Unit) {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        if (granted) viewModel.start() else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
+    // Both dismiss() and addReminder() land back on Idle. Waiting to see a non-Idle state first
+    // matters: Idle is also the state before start() runs, and closing on that would race.
+    var wasActive by remember { mutableStateOf(false) }
+    LaunchedEffect(state) {
+        if (state != VoiceCaptureState.Idle) wasActive = true else if (wasActive) onFinish()
+    }
+
+    if (state != VoiceCaptureState.Idle) {
+        VoiceOverlay(
+            state = state,
+            onStop = { viewModel.stopListening() },
+            onRetry = { viewModel.retry() },
+            onDismiss = { viewModel.dismiss() },
+            onAdd = { viewModel.addReminder() },
+        )
     }
 }
 
@@ -111,7 +175,7 @@ private fun VoiceOverlay(
     onStop: () -> Unit,
     onRetry: () -> Unit,
     onDismiss: () -> Unit,
-    onAdd: (VoiceTaskDraft, Long) -> Unit,
+    onAdd: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -185,7 +249,7 @@ private fun ProcessingContent() {
 private fun ResultContent(
     result: VoiceCaptureState.Result,
     onRetry: () -> Unit,
-    onAdd: (VoiceTaskDraft, Long) -> Unit,
+    onAdd: () -> Unit,
 ) {
     val draft = result.draft
     Text(
@@ -231,7 +295,8 @@ private fun ResultContent(
         )
         GradientButton(
             text = "Add reminder",
-            onClick = { result.listId?.let { onAdd(draft, it) } },
+            onClick = onAdd,
+            enabled = result.listId != null,
             modifier = Modifier.weight(1f),
         )
     }

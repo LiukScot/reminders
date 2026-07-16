@@ -14,6 +14,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -39,6 +42,10 @@ private fun listDetailRoute(listId: Long) = "listDetail/$listId"
 @Composable
 fun RemindersApp(deepLinkListId: Long? = null) {
     val navController = rememberNavController()
+    // Re-tapping the active tab resets it to today. A tick per tab rather than one shared counter,
+    // so resetting Day doesn't also throw away Week's restored scroll position.
+    var dayResetTick by remember { mutableIntStateOf(0) }
+    var weekResetTick by remember { mutableIntStateOf(0) }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
     val current = Destination.entries.firstOrNull { dest ->
@@ -93,8 +100,8 @@ fun RemindersApp(deepLinkListId: Long? = null) {
                 ListsScreen(onOpenList = { listId -> navController.navigate(listDetailRoute(listId)) })
             }
             composable(Destination.Settings.route) { SettingsScreen() }
-            composable(Destination.Day.route) { DayScreen() }
-            composable(Destination.Week.route) { WeekScreen() }
+            composable(Destination.Day.route) { DayScreen(resetToTodayTick = dayResetTick) }
+            composable(Destination.Week.route) { WeekScreen(resetToTodayTick = weekResetTick) }
             Destination.entries.filter { it != Destination.Lists && it != Destination.Day && it != Destination.Week && it != Destination.Settings }.forEach { destination ->
                 composable(destination.route) { PlaceholderScreen(destination.label) }
             }
@@ -118,6 +125,13 @@ fun RemindersApp(deepLinkListId: Long? = null) {
             FloatingNavBar(
                 current = current,
                 onSelect = { destination ->
+                    if (destination == current) {
+                        when (destination) {
+                            Destination.Day -> dayResetTick++
+                            Destination.Week -> weekResetTick++
+                            else -> Unit
+                        }
+                    }
                     navController.navigate(destination.route) {
                         popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                         launchSingleTop = true
