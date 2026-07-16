@@ -32,12 +32,14 @@ import com.liukscot.reminders.ui.navigation.FloatingNavBar
 import com.liukscot.reminders.ui.screens.ListsScreen
 import com.liukscot.reminders.ui.screens.DayScreen
 import com.liukscot.reminders.ui.screens.PlaceholderScreen
+import com.liukscot.reminders.ui.screens.SearchScreen
 import com.liukscot.reminders.ui.screens.SettingsScreen
 import com.liukscot.reminders.ui.screens.TaskListDetailScreen
 import com.liukscot.reminders.ui.screens.WeekScreen
 
 private const val LIST_DETAIL_ROUTE = "listDetail/{listId}"
 private fun listDetailRoute(listId: Long) = "listDetail/$listId"
+private const val SEARCH_ROUTE = "search"
 
 @Composable
 fun RemindersApp(deepLinkListId: Long? = null) {
@@ -97,8 +99,12 @@ fun RemindersApp(deepLinkListId: Long? = null) {
                     }
                 },
             ) {
-                ListsScreen(onOpenList = { listId -> navController.navigate(listDetailRoute(listId)) })
+                ListsScreen(
+                    onOpenList = { listId -> navController.navigate(listDetailRoute(listId)) },
+                    onOpenSearch = { navController.navigate(SEARCH_ROUTE) },
+                )
             }
+            composable(SEARCH_ROUTE) { SearchScreen(onBack = { navController.popBackStack() }) }
             composable(Destination.Settings.route) { SettingsScreen() }
             composable(Destination.Day.route) { DayScreen(resetToTodayTick = dayResetTick) }
             composable(Destination.Week.route) { WeekScreen(resetToTodayTick = weekResetTick) }

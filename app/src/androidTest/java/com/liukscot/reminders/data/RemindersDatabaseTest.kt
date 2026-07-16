@@ -70,6 +70,39 @@ class RemindersDatabaseTest {
     }
 
     @Test
+    fun searchTasks_matchesTitleNotesAndTags_acrossListsIncludingCompleted() = runTest {
+        val repository = RemindersRepository(db.taskDao(), db.taskListDao(), db.tagDao())
+        val groceriesId = db.taskListDao().insert(TaskList(name = "Groceries"))
+        val personalId = db.taskListDao().insert(TaskList(name = "Personal"))
+        val byTitleId = repository.addTask(Task(listId = groceriesId, title = "Pick up birthday cake", createdAt = 0))
+        val byNotesId = repository.addTask(
+            Task(listId = personalId, title = "Call the bakery", notes = "about the birthday order", createdAt = 0),
+        )
+        val byTagId = repository.addTask(
+            Task(listId = personalId, title = "Wrap the gift", completed = true, createdAt = 0),
+        )
+        repository.setTags(byTagId, listOf("birthday"))
+        repository.addTask(Task(listId = groceriesId, title = "Buy milk", createdAt = 0))
+
+        val hits = repository.searchTasks("birthday").first()
+
+        assertEquals(setOf(byTitleId, byNotesId, byTagId), hits.map { it.id }.toSet())
+    }
+
+    @Test
+    fun searchTasks_treatsWildcardsAsLiteralText() = runTest {
+        val repository = RemindersRepository(db.taskDao(), db.taskListDao(), db.tagDao())
+        val listId = db.taskListDao().insert(TaskList(name = "Personal"))
+        val discountId = repository.addTask(Task(listId = listId, title = "50% off coupon", createdAt = 0))
+        repository.addTask(Task(listId = listId, title = "Buy milk", createdAt = 0))
+
+        // Unescaped, "%" would be a LIKE wildcard and match every task.
+        val hits = repository.searchTasks("50%").first()
+
+        assertEquals(listOf(discountId), hits.map { it.id })
+    }
+
+    @Test
     fun tasksDueBetween_returnsOnlyTasksForTheSelectedDay() = runTest {
         val listId = db.taskListDao().insert(TaskList(name = "Personal"))
         val startOfDay = 1_752_364_800_000L

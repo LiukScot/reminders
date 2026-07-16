@@ -23,6 +23,21 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :id")
     suspend fun getById(id: Long): Task?
 
+    // Plain LIKE, not FTS: the table is one person's reminders, so a scan is nowhere near a
+    // measured bottleneck. `pattern` arrives already wrapped in %…% and escaped by the caller.
+    @Query(
+        """
+        SELECT DISTINCT tasks.* FROM tasks
+        LEFT JOIN task_tag_cross_ref ON task_tag_cross_ref.taskId = tasks.id
+        LEFT JOIN tags ON tags.id = task_tag_cross_ref.tagId
+        WHERE tasks.title LIKE :pattern ESCAPE '\'
+           OR tasks.notes LIKE :pattern ESCAPE '\'
+           OR tags.name LIKE :pattern ESCAPE '\'
+        ORDER BY tasks.dueAt IS NULL, tasks.dueAt ASC, tasks.createdAt DESC
+        """,
+    )
+    fun search(pattern: String): Flow<List<Task>>
+
     @Query("SELECT * FROM tasks WHERE hasDueTime = 1 AND completed = 0 AND dueAt >= :fromInclusive")
     suspend fun getPendingRemindersFrom(fromInclusive: Long): List<Task>
 

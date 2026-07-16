@@ -3,6 +3,16 @@ package com.liukscot.reminders.data
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+// LIKE reads % and _ as wildcards, so searching for a literal "50%" or "a_b" has to escape them.
+// The escape character itself goes first, else it would escape the backslashes added after it.
+internal fun likePattern(query: String): String {
+    val escaped = query
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_")
+    return "%$escaped%"
+}
+
 class RemindersRepository(
     private val taskDao: TaskDao,
     private val taskListDao: TaskListDao,
@@ -22,6 +32,9 @@ class RemindersRepository(
         taskDao.getOpenDueBefore(beforeExclusive)
 
     fun tasksByTag(tagName: String): Flow<List<Task>> = tagDao.tasksByTagName(tagName)
+
+    // Matches title, notes and tags, across every list and including completed tasks.
+    fun searchTasks(query: String): Flow<List<Task>> = taskDao.search(likePattern(query))
 
     suspend fun pendingRemindersFrom(fromInclusive: Long): List<Task> =
         taskDao.getPendingRemindersFrom(fromInclusive)
