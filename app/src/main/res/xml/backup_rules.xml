@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The API keys are encrypted with an Android Keystore master key, which never leaves the device
+     and is not part of a backup. Restoring the file onto a device without its key yields prefs that
+     can never be decrypted, so keep it out of backups entirely. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="secure_keys.xml" />
+</full-backup-content>
