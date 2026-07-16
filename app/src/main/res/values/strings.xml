@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Reminders</string>
+    <string name="voice_tile_label">Speak a reminder</string>
 </resources>
