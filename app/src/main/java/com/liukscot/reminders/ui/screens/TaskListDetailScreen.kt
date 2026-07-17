@@ -73,6 +73,7 @@ fun TaskListDetailScreen(
     var editing by remember { mutableStateOf<DetailEditTarget>(DetailEditTarget.None) }
     var completedExpanded by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Task?>(null) }
+    var confirmingListDelete by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -83,7 +84,7 @@ fun TaskListDetailScreen(
                 onMenuExpandedChange = { menuExpanded = it },
                 canDelete = state.lists.size > 1,
                 onRename = { editing = DetailEditTarget.RenameList },
-                onDelete = { viewModel.deleteList(onDeleted = onBack) },
+                onDelete = { confirmingListDelete = true },
             )
             Text(
                 text = state.list?.name.orEmpty(),
@@ -208,6 +209,14 @@ fun TaskListDetailScreen(
             title = task.title,
             onDismiss = { deleting = null },
             onConfirm = { viewModel.deleteTask(task); deleting = null },
+        )
+    }
+
+    if (confirmingListDelete) {
+        DeleteListDialog(
+            listName = state.list?.name.orEmpty(),
+            onDismiss = { confirmingListDelete = false },
+            onConfirm = { confirmingListDelete = false; viewModel.deleteList(onDeleted = onBack) },
         )
     }
 }

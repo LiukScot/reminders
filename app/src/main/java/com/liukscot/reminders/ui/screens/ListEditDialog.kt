@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,6 +56,25 @@ fun ListEditDialog(
                 }
                 TextButton(onClick = onDismiss) { Text("Cancel") }
             }
+        },
+    )
+}
+
+// Deleting a list takes every reminder in it with it (the tasks cascade), and there is no undo —
+// so it asks first. Shared by the list detail's menu and the Lists rename dialog.
+@Composable
+fun DeleteListDialog(listName: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete list?") },
+        text = { Text("“$listName” and all its reminders will be deleted. This cannot be undone.") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Delete", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
 }

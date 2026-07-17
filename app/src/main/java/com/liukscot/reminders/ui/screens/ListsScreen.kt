@@ -153,10 +153,15 @@ fun ListsScreen(
             onDismiss = { editing = EditTarget.None },
             onSave = { name -> viewModel.renameList(target.list, name); editing = EditTarget.None },
             onDelete = if (state.allLists.size > 1) {
-                { viewModel.deleteList(target.list); editing = EditTarget.None }
+                { editing = EditTarget.ConfirmDelete(target.list) }
             } else {
                 null
             },
+        )
+        is EditTarget.ConfirmDelete -> DeleteListDialog(
+            listName = target.list.name,
+            onDismiss = { editing = EditTarget.None },
+            onConfirm = { viewModel.deleteList(target.list); editing = EditTarget.None },
         )
         is EditTarget.NewTask -> ReminderSheet(
             lists = state.allLists,
@@ -247,6 +252,7 @@ private sealed interface EditTarget {
     data object NewList : EditTarget
     data object NewTask : EditTarget
     data class Rename(val list: TaskList) : EditTarget
+    data class ConfirmDelete(val list: TaskList) : EditTarget
 }
 
 @Composable
