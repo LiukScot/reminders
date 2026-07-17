@@ -54,6 +54,7 @@ import com.liukscot.reminders.ui.theme.CheckboxIdleBorder
 import com.liukscot.reminders.ui.theme.Line1
 import com.liukscot.reminders.ui.theme.MonoFontFamily
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -378,14 +379,7 @@ internal fun TaskGroupCard(
                         )
                     }
                 }
-                val dueText = task.dueAt?.let { dueAt ->
-                    val zoned = Instant.ofEpochMilli(dueAt).atZone(ZoneId.systemDefault())
-                    if (task.hasDueTime) {
-                        zoned.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
-                    } else {
-                        zoned.toLocalDate().format(DateTimeFormatter.ofPattern("MMM d"))
-                    }
-                }
+                val dueText = task.dueAt?.let { dueAt -> task.dueLabel(dueAt) }
                 val metaText = (listOfNotNull(dueText, task.notes) + group.tags.map { "#$it" }).joinToString(" · ")
                 val recurring = task.recurrenceFreq != null
                 if (metaText.isNotEmpty() || recurring) {
@@ -431,6 +425,20 @@ internal fun TaskGroupCard(
             }
         }
     }
+}
+
+private val DueTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+private val DueDateFormatter = DateTimeFormatter.ofPattern("MMM d")
+
+// Ref: mockup shows a bare time ("15:30"), which reads fine inside a list of today's reminders —
+// so today with a time keeps saying just that. Everywhere else the day has to be there: a smart
+// list mixes days, and "11:24" on something overdue since last week tells the reader nothing.
+private fun Task.dueLabel(dueAt: Long): String {
+    val zoned = Instant.ofEpochMilli(dueAt).atZone(ZoneId.systemDefault())
+    val time = if (hasDueTime) zoned.toLocalTime().format(DueTimeFormatter) else null
+    val isTodayWithTime = time != null && zoned.toLocalDate() == LocalDate.now()
+    val day = if (isTodayWithTime) null else zoned.toLocalDate().format(DueDateFormatter)
+    return listOfNotNull(day, time).joinToString(" ")
 }
 
 @Composable
