@@ -22,12 +22,13 @@ class ReminderScheduler(private val context: Context) {
         if (dueAt == null || !task.hasDueTime || task.completed || dueAt <= System.currentTimeMillis()) return
 
         val pendingIntent = pendingIntentFor(task.id, task.listId, task.title)
+        // USE_EXACT_ALARM (see manifest) makes canScheduleExactAlarms() true from install, so the
+        // exact branch is the normal path and reminders fire on time even in Doze. The inexact
+        // fallback only ever runs if that permission is somehow absent — an approximate time still
+        // beats silently dropping the reminder.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, dueAt, pendingIntent)
         } else {
-            // ponytail: no exact-alarm permission — an approximate fire time
-            // beats silently dropping the reminder. Upgrade path: prompt the
-            // user to grant SCHEDULE_EXACT_ALARM if this matters more later.
             alarmManager.set(AlarmManager.RTC_WAKEUP, dueAt, pendingIntent)
         }
     }

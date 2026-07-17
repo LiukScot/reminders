@@ -1,7 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Reminders fire at a chosen time, so they need exact alarms. USE_EXACT_ALARM is granted at
+         install on Android 13+ (allowed because timed reminders are the app's core function);
+         SCHEDULE_EXACT_ALARM covers Android 12, where USE_EXACT_ALARM doesn't exist. Without this,
+         SCHEDULE_EXACT_ALARM is denied by default on 13+ and alarms fall back to inexact delivery,
+         arriving late — often only when the app is next opened. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
