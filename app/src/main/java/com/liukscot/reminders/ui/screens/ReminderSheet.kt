@@ -1,6 +1,8 @@
 package com.liukscot.reminders.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,7 +17,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -388,7 +389,10 @@ fun ReminderSheet(
                 }
             }
             SectionLabel("LIST")
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 lists.forEach { list ->
                     val selected = list.id == selectedListId
                     Text(
@@ -494,13 +498,13 @@ fun ReminderSheet(
 
     if (showCustomRecurrenceSheet) {
         CustomRecurrenceSheet(
-            frequency = recurrenceFreq ?: RecurrenceFrequency.WEEKLY,
-            interval = recurrenceInterval,
-            byDay = recurrenceByDay,
-            onFrequencyChange = { recurrenceFreq = it },
-            onIntervalChange = { recurrenceInterval = it },
-            onByDayChange = { recurrenceByDay = it },
-            onDone = {
+            initialFrequency = recurrenceFreq ?: RecurrenceFrequency.WEEKLY,
+            initialInterval = recurrenceInterval,
+            initialByDay = recurrenceByDay,
+            onDone = { freq, every, days ->
+                recurrenceFreq = freq
+                recurrenceInterval = every
+                recurrenceByDay = days
                 usingCustomRecurrence = true
                 showCustomRecurrenceSheet = false
             },
@@ -512,15 +516,17 @@ fun ReminderSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomRecurrenceSheet(
-    frequency: RecurrenceFrequency,
-    interval: Int,
-    byDay: Set<DayOfWeek>,
-    onFrequencyChange: (RecurrenceFrequency) -> Unit,
-    onIntervalChange: (Int) -> Unit,
-    onByDayChange: (Set<DayOfWeek>) -> Unit,
-    onDone: () -> Unit,
+    initialFrequency: RecurrenceFrequency,
+    initialInterval: Int,
+    initialByDay: Set<DayOfWeek>,
+    onDone: (RecurrenceFrequency, Int, Set<DayOfWeek>) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    // Draft locally so backing out (dismiss) discards edits — only Done commits them upward. Before,
+    // the edit callbacks mutated the parent live, so a cancelled sheet still left its changes behind.
+    var frequency by remember { mutableStateOf(initialFrequency) }
+    var interval by remember { mutableStateOf(initialInterval) }
+    var byDay by remember { mutableStateOf(initialByDay) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -583,7 +589,7 @@ private fun CustomRecurrenceSheet(
                                 if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                                 RoundedCornerShape(50),
                             )
-                            .clickable { onFrequencyChange(freq) }
+                            .clickable { frequency = freq }
                             .padding(horizontal = 14.dp, vertical = 8.dp),
                     )
                 }
@@ -594,14 +600,14 @@ private fun CustomRecurrenceSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RecurrenceStepButton(icon = R.drawable.ic_minus, onClick = { onIntervalChange((interval - 1).coerceAtLeast(1)) })
+                RecurrenceStepButton(icon = R.drawable.ic_minus, contentDescription = "Decrease interval", onClick = { interval = (interval - 1).coerceAtLeast(1) })
                 Text(
                     text = "$interval ${recurrenceUnitLabel(frequency, interval)}",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                RecurrenceStepButton(icon = R.drawable.ic_plus, onClick = { onIntervalChange(interval + 1) })
+                RecurrenceStepButton(icon = R.drawable.ic_plus, contentDescription = "Increase interval", onClick = { interval = interval + 1 })
             }
             if (frequency == RecurrenceFrequency.WEEKLY) {
                 SectionLabel("ON THESE DAYS")
@@ -620,19 +626,19 @@ private fun CustomRecurrenceSheet(
                                     if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                                     RoundedCornerShape(10.dp),
                                 )
-                                .clickable { onByDayChange(if (selected) byDay - day else byDay + day) }
+                                .clickable { byDay = if (selected) byDay - day else byDay + day }
                                 .padding(vertical = 10.dp),
                         )
                     }
                 }
             }
-            GradientButton(text = "Done", onClick = onDone, enabled = true)
+            GradientButton(text = "Done", onClick = { onDone(frequency, interval, byDay) }, enabled = true)
         }
     }
 }
 
 @Composable
-private fun RecurrenceStepButton(icon: Int, onClick: () -> Unit) {
+private fun RecurrenceStepButton(icon: Int, contentDescription: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(40.dp)
@@ -642,7 +648,7 @@ private fun RecurrenceStepButton(icon: Int, onClick: () -> Unit) {
     ) {
         Icon(
             painter = painterResource(icon),
-            contentDescription = null,
+            contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(16.dp),
         )
