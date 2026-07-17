@@ -1,5 +1,8 @@
 package com.liukscot.reminders.ui.screens
 
+import android.content.ContentResolver
+import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
@@ -11,6 +14,9 @@ import com.liukscot.reminders.data.RemindersRepository
 import com.liukscot.reminders.data.SecureKeyStore
 import com.liukscot.reminders.data.SettingsRepository
 import com.liukscot.reminders.data.TaskList
+import com.liukscot.reminders.data.encodeBackup
+import com.liukscot.reminders.data.decodeBackup
+import com.liukscot.reminders.notifications.ReminderScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,6 +25,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONException
+import java.io.IOException
 
 data class SettingsUiState(
     val lists: List<TaskList> = emptyList(),
@@ -29,11 +37,23 @@ data class SettingsUiState(
     val defaultListName: String? get() = lists.firstOrNull { it.id == defaultListId }?.name
 }
 
+private const val TAG = "SettingsViewModel"
+
 class SettingsViewModel(
     private val repository: RemindersRepository,
     private val settingsRepository: SettingsRepository,
     private val keyStore: SecureKeyStore,
+    private val contentResolver: ContentResolver,
+    private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
+    // Export and restore have no on-screen state of their own — they report one line and are done.
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message
+
+    fun clearMessage() {
+        _message.value = null
+    }
+
     // The stored key isn't reactive (EncryptedSharedPreferences), so mirror a masked hint of it into
     // a flow: reloaded whenever the selected provider changes and after the user saves a new key.
     private val apiKeyHint = MutableStateFlow<String?>(null)
@@ -74,6 +94,58 @@ class SettingsViewModel(
             apiKeyHint.value = key.trim().ifBlank { null }?.let(::maskKey)
         }
     }
+
+    fun exportTo(uri: Uri) {
+        viewModelScope.launch {
+            val backup = repository.exportBackup()
+            val text = encodeBackup(backup, exportedAt = System.currentTimeMillis())
+            _message.value = try {
+                withContext(Dispatchers.IO) {
+                    // The picker guarantees the document exists; a null stream means it vanished.
+                    contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) }
+                        ?: throw IOException("could not open $uri for writing")
+                }
+                "Exported ${backup.tasks.size} reminders"
+            } catch (e: IOException) {
+                Log.w(TAG, "export failed", e)
+                "Export failed: ${e.message}"
+            }
+        }
+    }
+
+    // The file comes from the system picker, so it is whatever the user tapped — unreadable,
+    // not JSON, or a backup from a future version are all normal outcomes, not crashes.
+    fun restoreFrom(uri: Uri) {
+        viewModelScope.launch {
+            val backup = try {
+                val text = withContext(Dispatchers.IO) {
+                    contentResolver.openInputStream(uri)?.use { it.reader().readText() }
+                        ?: throw IOException("could not open $uri for reading")
+                }
+                decodeBackup(text)
+            } catch (e: IOException) {
+                Log.w(TAG, "restore failed to read the file", e)
+                _message.value = "Restore failed: ${e.message}"
+                return@launch
+            } catch (e: JSONException) {
+                Log.w(TAG, "restore failed to parse the file", e)
+                _message.value = "Restore failed: not a valid backup file"
+                return@launch
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "restore rejected the file", e)
+                _message.value = "Restore failed: ${e.message}"
+                return@launch
+            }
+
+            // Alarms are keyed by task id, and the wipe frees every id for the file's tasks to take
+            // over — so pending ones would fire for reminders that no longer exist, under a title
+            // now belonging to something else. Clear them all, then re-arm from the restored rows.
+            repository.allTasks().forEach { reminderScheduler.cancel(it.id) }
+            repository.restoreBackup(backup)
+            repository.allTasks().forEach { reminderScheduler.schedule(it) }
+            _message.value = "Restored ${backup.tasks.size} reminders"
+        }
+    }
 }
 
 private fun maskKey(key: String): String = "••••" + key.takeLast(4)
@@ -81,5 +153,13 @@ private fun maskKey(key: String): String = "••••" + key.takeLast(4)
 @Composable
 fun rememberSettingsViewModel(): SettingsViewModel {
     val app = LocalContext.current.applicationContext as RemindersApplication
-    return viewModel { SettingsViewModel(app.repository, app.settingsRepository, app.secureKeyStore) }
+    return viewModel {
+        SettingsViewModel(
+            app.repository,
+            app.settingsRepository,
+            app.secureKeyStore,
+            app.contentResolver,
+            app.reminderScheduler,
+        )
+    }
 }

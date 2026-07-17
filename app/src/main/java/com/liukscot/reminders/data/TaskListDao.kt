@@ -15,8 +15,18 @@ interface TaskListDao {
     @Query("SELECT * FROM task_lists WHERE id = :id")
     suspend fun getById(id: Long): TaskList?
 
+    @Query("SELECT * FROM task_lists")
+    suspend fun getAllOnce(): List<TaskList>
+
     @Insert
     suspend fun insert(taskList: TaskList): Long
+
+    @Insert
+    suspend fun insertAll(lists: List<TaskList>)
+
+    // Cascades through tasks and their tag cross-refs, so this alone empties everything but `tags`.
+    @Query("DELETE FROM task_lists")
+    suspend fun deleteAll()
 
     @Update
     suspend fun update(taskList: TaskList)

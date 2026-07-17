@@ -12,8 +12,17 @@ interface TagDao {
     @Query("SELECT * FROM tags WHERE name = :name")
     suspend fun findByName(name: String): Tag?
 
+    @Query("SELECT * FROM tags")
+    suspend fun getAllOnce(): List<Tag>
+
     @Insert
     suspend fun insert(tag: Tag): Long
+
+    @Insert
+    suspend fun insertAll(tags: List<Tag>)
+
+    @Query("DELETE FROM tags")
+    suspend fun deleteAll()
 
     @Query(
         "SELECT task_tag_cross_ref.taskId AS taskId, tags.name AS name " +
@@ -21,6 +30,9 @@ interface TagDao {
             "ORDER BY tags.name ASC",
     )
     fun tagsByTaskId(): Flow<List<TaskTagRow>>
+
+    @Query("SELECT * FROM task_tag_cross_ref")
+    suspend fun getAllCrossRefsOnce(): List<TaskTagCrossRef>
 
     @Query("DELETE FROM task_tag_cross_ref WHERE taskId = :taskId")
     suspend fun clearTagsForTask(taskId: Long)

@@ -1,6 +1,12 @@
 package com.liukscot.reminders.data
 
+import androidx.room.withTransaction
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 // LIKE reads % and _ as wildcards, so searching for a literal "50%" or "a_b" has to escape them.
@@ -13,11 +19,12 @@ internal fun likePattern(query: String): String {
     return "%$escaped%"
 }
 
-class RemindersRepository(
-    private val taskDao: TaskDao,
-    private val taskListDao: TaskListDao,
-    private val tagDao: TagDao,
-) {
+@OptIn(ExperimentalCoroutinesApi::class)
+class RemindersRepository(private val db: RemindersDatabase) {
+    private val taskDao = db.taskDao()
+    private val taskListDao = db.taskListDao()
+    private val tagDao = db.tagDao()
+
     val lists: Flow<List<TaskList>> = taskListDao.getAll()
     val openCountsByList: Flow<List<ListCount>> = taskDao.openCountsByList()
     val tagsByTaskId: Flow<Map<Long, List<String>>> =
@@ -126,4 +133,34 @@ class RemindersRepository(
     }
 
     suspend fun deleteTask(task: Task) = taskDao.delete(task)
+
+    suspend fun allTasks(): List<Task> = taskDao.getAllOnce()
+
+    suspend fun exportBackup(): RemindersBackup = db.withTransaction {
+        RemindersBackup(
+            lists = taskListDao.getAllOnce(),
+            tags = tagDao.getAllOnce(),
+            tasks = taskDao.getAllOnce(),
+            tagIdsByTaskId = tagDao.getAllCrossRefsOnce()
+                .groupBy(TaskTagCrossRef::taskId, TaskTagCrossRef::tagId),
+        )
+    }
+
+    // Replaces everything: a backup is a snapshot of the whole database, and merging two id spaces
+    // would silently mangle both. The transaction is what makes that safe — a failure part-way
+    // rolls back to the data that was already there instead of leaving it half-wiped.
+    suspend fun restoreBackup(backup: RemindersBackup) = db.withTransaction {
+        taskListDao.deleteAll()
+        tagDao.deleteAll()
+        taskListDao.insertAll(backup.lists)
+        tagDao.insertAll(backup.tags)
+        // ponytail: a task's parent must exist before it does, and nothing creates subtasks deeper
+        // than one level today — so roots-first is enough. Sort topologically if nesting ever grows.
+        taskDao.insertAll(backup.tasks.sortedBy { it.parentId != null })
+        tagDao.insertCrossRefs(
+            backup.tasks.flatMap { task ->
+                backup.tagIdsByTaskId[task.id].orEmpty().map { TaskTagCrossRef(task.id, it) }
+            },
+        )
+    }
 }

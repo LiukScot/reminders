@@ -52,7 +52,7 @@ class RemindersDatabaseTest {
 
     @Test
     fun setTags_dedupesAndFindsTasksAcrossLists() = runTest {
-        val repository = RemindersRepository(db.taskDao(), db.taskListDao(), db.tagDao())
+        val repository = RemindersRepository(db)
         val groceriesId = db.taskListDao().insert(TaskList(name = "Groceries"))
         val personalId = db.taskListDao().insert(TaskList(name = "Personal"))
         val milkId = repository.addTask(Task(listId = groceriesId, title = "Buy milk", createdAt = 0))
@@ -71,7 +71,7 @@ class RemindersDatabaseTest {
 
     @Test
     fun searchTasks_matchesTitleNotesAndTags_acrossListsIncludingCompleted() = runTest {
-        val repository = RemindersRepository(db.taskDao(), db.taskListDao(), db.tagDao())
+        val repository = RemindersRepository(db)
         val groceriesId = db.taskListDao().insert(TaskList(name = "Groceries"))
         val personalId = db.taskListDao().insert(TaskList(name = "Personal"))
         val byTitleId = repository.addTask(Task(listId = groceriesId, title = "Pick up birthday cake", createdAt = 0))
@@ -91,7 +91,7 @@ class RemindersDatabaseTest {
 
     @Test
     fun searchTasks_treatsWildcardsAsLiteralText() = runTest {
-        val repository = RemindersRepository(db.taskDao(), db.taskListDao(), db.tagDao())
+        val repository = RemindersRepository(db)
         val listId = db.taskListDao().insert(TaskList(name = "Personal"))
         val discountId = repository.addTask(Task(listId = listId, title = "50% off coupon", createdAt = 0))
         repository.addTask(Task(listId = listId, title = "Buy milk", createdAt = 0))
