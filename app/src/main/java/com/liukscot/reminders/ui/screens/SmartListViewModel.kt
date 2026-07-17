@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.liukscot.reminders.RemindersApplication
 import com.liukscot.reminders.data.RemindersRepository
+import com.liukscot.reminders.data.SettingsRepository
 import com.liukscot.reminders.data.SmartList
 import com.liukscot.reminders.data.Task
 import com.liukscot.reminders.data.TaskList
@@ -20,10 +21,14 @@ import kotlinx.coroutines.launch
 data class SmartListUiState(
     val tasks: List<TaskGroup> = emptyList(),
     val lists: List<TaskList> = emptyList(),
+    // A smart list is a filter with no list of its own, so a reminder added from here lands in the
+    // default list (or the first, if none is set) — same target as the Lists screen's add button.
+    val newTaskListId: Long? = null,
 )
 
 class SmartListViewModel(
     private val repository: RemindersRepository,
+    private val settingsRepository: SettingsRepository,
     private val reminderScheduler: ReminderScheduler,
     smartList: SmartList,
 ) : ViewModel() {
@@ -31,7 +36,8 @@ class SmartListViewModel(
         repository.tasksIn(smartList),
         repository.lists,
         repository.tagsByTaskId,
-    ) { tasks, lists, tagsByTaskId ->
+        settingsRepository.defaultListId,
+    ) { tasks, lists, tagsByTaskId, defaultListId ->
         // A smart list is a filtered slice, so a sub-task can match while its parent doesn't. Nest
         // only under a parent that survived the filter — the rest stand on their own, rather than
         // vanishing with the parent that isn't here to draw them.
@@ -42,6 +48,7 @@ class SmartListViewModel(
                 .filter { it.parentId !in presentIds }
                 .map { TaskGroup(it, childrenByParent[it.id].orEmpty(), tagsByTaskId[it.id].orEmpty()) },
             lists = lists,
+            newTaskListId = defaultListId ?: lists.firstOrNull()?.id,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -92,6 +99,6 @@ class SmartListViewModel(
 fun rememberSmartListViewModel(smartList: SmartList): SmartListViewModel {
     val app = LocalContext.current.applicationContext as RemindersApplication
     return viewModel(key = "smart-list-${smartList.name}") {
-        SmartListViewModel(app.repository, app.reminderScheduler, smartList)
+        SmartListViewModel(app.repository, app.settingsRepository, app.reminderScheduler, smartList)
     }
 }
