@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,15 +40,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.liukscot.reminders.R
 import com.liukscot.reminders.data.ListIcons
+import com.liukscot.reminders.data.SmartList
 import com.liukscot.reminders.data.TaskList
 import com.liukscot.reminders.ui.theme.MonoFontFamily
 
-// Ref: Reminders App Mockup "Home" screen — header, "My lists" section, and
-// groupRadius-style rows. Smart-list cards (Flagged/No date/All/Completed)
-// depend on priority/flag fields that don't exist yet — built separately.
+// Ref: Reminders App Mockup "Home" screen — header, smart-list card grid, "My
+// lists" section, and groupRadius-style rows.
 @Composable
 fun ListsScreen(
     onOpenList: (Long) -> Unit,
+    onOpenSmartList: (SmartList) -> Unit,
     onOpenSearch: () -> Unit,
     viewModel: ListsViewModel = rememberListsViewModel(),
 ) {
@@ -97,6 +99,11 @@ fun ListsScreen(
                     color = MaterialTheme.colorScheme.outline,
                 )
             }
+            SmartListGrid(
+                countFor = state::countFor,
+                onOpen = onOpenSmartList,
+                modifier = Modifier.padding(bottom = 18.dp),
+            )
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -171,6 +178,74 @@ fun ListsScreen(
             },
         )
         EditTarget.None -> Unit
+    }
+}
+
+// Ref: mockup's 2x2 card grid between the search pill and "MY LISTS". Enum order is card order.
+@Composable
+private fun SmartListGrid(
+    countFor: (SmartList) -> Int,
+    onOpen: (SmartList) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SmartList.entries.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { smartList ->
+                    SmartListCard(
+                        smartList = smartList,
+                        count = countFor(smartList),
+                        onClick = { onOpen(smartList) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SmartListCard(
+    smartList: SmartList,
+    count: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(smartList.icon),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = count.toString(),
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Text(
+            text = smartList.label,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 10.dp),
+        )
     }
 }
 

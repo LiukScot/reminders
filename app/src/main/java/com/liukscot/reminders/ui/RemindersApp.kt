@@ -27,6 +27,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.liukscot.reminders.data.SmartList
 import com.liukscot.reminders.ui.navigation.Destination
 import com.liukscot.reminders.ui.navigation.FloatingNavBar
 import com.liukscot.reminders.ui.screens.ListsScreen
@@ -34,12 +35,18 @@ import com.liukscot.reminders.ui.screens.DayScreen
 import com.liukscot.reminders.ui.screens.PlaceholderScreen
 import com.liukscot.reminders.ui.screens.SearchScreen
 import com.liukscot.reminders.ui.screens.SettingsScreen
+import com.liukscot.reminders.ui.screens.SmartListScreen
 import com.liukscot.reminders.ui.screens.TaskListDetailScreen
 import com.liukscot.reminders.ui.screens.WeekScreen
 
 private const val LIST_DETAIL_ROUTE = "listDetail/{listId}"
 private fun listDetailRoute(listId: Long) = "listDetail/$listId"
 private const val SEARCH_ROUTE = "search"
+private const val SMART_LIST_ROUTE = "smartList/{smartList}"
+private fun smartListRoute(smartList: SmartList) = "smartList/${smartList.name}"
+
+// Routes pushed from Lists as a drill-down: those slide, tab switches don't.
+private val DETAIL_ROUTES = setOf(LIST_DETAIL_ROUTE, SMART_LIST_ROUTE)
 
 @Composable
 fun RemindersApp(deepLinkListId: Long? = null) {
@@ -85,14 +92,14 @@ fun RemindersApp(deepLinkListId: Long? = null) {
                 // the animation based on which destination is on the other
                 // end of the transition.
                 exitTransition = {
-                    if (targetState.destination.route == LIST_DETAIL_ROUTE) {
+                    if (targetState.destination.route in DETAIL_ROUTES) {
                         slideOutHorizontally(tween(300)) { -it }
                     } else {
                         ExitTransition.None
                     }
                 },
                 popEnterTransition = {
-                    if (initialState.destination.route == LIST_DETAIL_ROUTE) {
+                    if (initialState.destination.route in DETAIL_ROUTES) {
                         slideInHorizontally(tween(300)) { -it }
                     } else {
                         EnterTransition.None
@@ -101,10 +108,25 @@ fun RemindersApp(deepLinkListId: Long? = null) {
             ) {
                 ListsScreen(
                     onOpenList = { listId -> navController.navigate(listDetailRoute(listId)) },
+                    onOpenSmartList = { smartList -> navController.navigate(smartListRoute(smartList)) },
                     onOpenSearch = { navController.navigate(SEARCH_ROUTE) },
                 )
             }
             composable(SEARCH_ROUTE) { SearchScreen(onBack = { navController.popBackStack() }) }
+            composable(
+                route = SMART_LIST_ROUTE,
+                arguments = listOf(navArgument("smartList") { type = NavType.StringType }),
+                enterTransition = { slideInHorizontally(tween(300)) { it } },
+                exitTransition = { slideOutHorizontally(tween(300)) { -it } },
+                popEnterTransition = { slideInHorizontally(tween(300)) { -it } },
+                popExitTransition = { slideOutHorizontally(tween(300)) { it } },
+            ) { entry ->
+                val name = entry.arguments?.getString("smartList") ?: return@composable
+                SmartListScreen(
+                    smartList = SmartList.valueOf(name),
+                    onBack = { navController.popBackStack() },
+                )
+            }
             composable(Destination.Settings.route) { SettingsScreen() }
             composable(Destination.Day.route) { DayScreen(resetToTodayTick = dayResetTick) }
             composable(Destination.Week.route) { WeekScreen(resetToTodayTick = weekResetTick) }

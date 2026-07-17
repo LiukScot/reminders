@@ -8,6 +8,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.liukscot.reminders.RemindersApplication
 import com.liukscot.reminders.data.RemindersRepository
 import com.liukscot.reminders.data.SettingsRepository
+import com.liukscot.reminders.data.SmartList
+import com.liukscot.reminders.data.SmartListCounts
 import com.liukscot.reminders.data.Task
 import com.liukscot.reminders.data.TaskList
 import com.liukscot.reminders.notifications.ReminderScheduler
@@ -23,7 +25,15 @@ data class ListsUiState(
     val lists: List<ListWithCount> = emptyList(),
     val allLists: List<TaskList> = emptyList(),
     val defaultListId: Long? = null,
-)
+    val smartListCounts: SmartListCounts = SmartListCounts(),
+) {
+    fun countFor(smartList: SmartList): Int = when (smartList) {
+        SmartList.Flagged -> smartListCounts.flagged
+        SmartList.All -> smartListCounts.open
+        SmartList.Completed -> smartListCounts.completed
+        SmartList.Overdue -> smartListCounts.overdue
+    }
+}
 
 class ListsViewModel(
     private val repository: RemindersRepository,
@@ -34,12 +44,14 @@ class ListsViewModel(
         repository.lists,
         repository.openCountsByList,
         settingsRepository.defaultListId,
-    ) { lists, counts, defaultListId ->
+        repository.smartListCounts,
+    ) { lists, counts, defaultListId, smartListCounts ->
         val countByListId = counts.associate { it.listId to it.count }
         ListsUiState(
             lists = lists.map { ListWithCount(it, countByListId[it.id] ?: 0) },
             allLists = lists,
             defaultListId = defaultListId,
+            smartListCounts = smartListCounts,
         )
     }.stateIn(
         scope = viewModelScope,

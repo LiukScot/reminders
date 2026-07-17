@@ -40,6 +40,27 @@ class RemindersRepository(private val db: RemindersDatabase) {
 
     fun tasksByTag(tagName: String): Flow<List<Task>> = tagDao.tasksByTagName(tagName)
 
+    // "Overdue" is the only thing here that changes on its own, with no edit to react to: a task
+    // due at 14:00 becomes overdue at 14:01 whether or not anything touched the database. Re-reading
+    // it every minute keeps the count honest while the app sits open; WhileSubscribed stops the tick
+    // with the screen. A minute is well under the resolution anyone reads a "2 overdue" badge at.
+    private val nowTicker: Flow<Long> = flow {
+        while (true) {
+            emit(System.currentTimeMillis())
+            delay(60_000)
+        }
+    }
+
+    val smartListCounts: Flow<SmartListCounts> =
+        nowTicker.flatMapLatest { now -> taskDao.smartListCounts(now) }.distinctUntilChanged()
+
+    fun tasksIn(smartList: SmartList): Flow<List<Task>> = when (smartList) {
+        SmartList.Flagged -> taskDao.getFlagged()
+        SmartList.All -> taskDao.getAllOpen()
+        SmartList.Completed -> taskDao.getCompleted()
+        SmartList.Overdue -> nowTicker.flatMapLatest { now -> taskDao.getOpenDueBefore(now) }
+    }
+
     // Matches title, notes and tags, across every list and including completed tasks.
     fun searchTasks(query: String): Flow<List<Task>> = taskDao.search(likePattern(query))
 
