@@ -69,6 +69,7 @@ fun WeekScreen(resetToTodayTick: Int = 0, viewModel: WeekViewModel = rememberWee
     val zone = remember { ZoneId.systemDefault() }
 
     var sheetTarget by remember { mutableStateOf<ReminderSheetTarget>(ReminderSheetTarget.None) }
+    var deleting by remember { mutableStateOf<Task?>(null) }
     var draggedTask by remember { mutableStateOf<Task?>(null) }
     var dragPosition by remember { mutableStateOf<Offset?>(null) }
     val dayTop = remember { mutableStateMapOf<LocalDate, Float>() }
@@ -161,6 +162,7 @@ fun WeekScreen(resetToTodayTick: Int = 0, viewModel: WeekViewModel = rememberWee
                                 onDragEnd = ::finishTaskDrag,
                                 onAddReminder = { sheetTarget = ReminderSheetTarget.New(entry.day.date) },
                                 onEditTask = { task -> sheetTarget = ReminderSheetTarget.Edit(task, state.tagsByTaskId[task.id].orEmpty()) },
+                                onDeleteRequest = { task -> deleting = task },
                             )
                         }
                     }
@@ -198,6 +200,10 @@ fun WeekScreen(resetToTodayTick: Int = 0, viewModel: WeekViewModel = rememberWee
             existingTags = target.tags,
             preselectedListId = target.task.listId,
             onDismiss = { sheetTarget = ReminderSheetTarget.None },
+            onDelete = {
+                viewModel.deleteTask(target.task)
+                sheetTarget = ReminderSheetTarget.None
+            },
             onSave = { title, notes, listId, tags, flagged, priority, dueAt, hasDueTime, recFreq, recInterval, recByDay, recAnchor ->
                 viewModel.saveTask(
                     target.task, title, notes, listId, tags, flagged, priority, dueAt, hasDueTime,
@@ -205,6 +211,14 @@ fun WeekScreen(resetToTodayTick: Int = 0, viewModel: WeekViewModel = rememberWee
                 )
                 sheetTarget = ReminderSheetTarget.None
             },
+        )
+    }
+
+    deleting?.let { task ->
+        DeleteReminderDialog(
+            title = task.title,
+            onDismiss = { deleting = null },
+            onConfirm = { viewModel.deleteTask(task); deleting = null },
         )
     }
 }
@@ -253,6 +267,7 @@ private fun WeekDayRow(
     onDragEnd: () -> Unit,
     onAddReminder: () -> Unit,
     onEditTask: (Task) -> Unit,
+    onDeleteRequest: (Task) -> Unit,
 ) {
     val shape = RoundedCornerShape(Dimens.radiusMd)
     val dropTargetTint by animateColorAsState(
@@ -295,17 +310,23 @@ private fun WeekDayRow(
                 )
             } else {
                 day.tasks.forEach { task ->
-                    DayTaskRow(
-                        task = task,
-                        trailingText = task.timeLabel(),
-                        trailingColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        onToggleComplete = onToggleComplete,
-                        isDragged = isDragged(task),
-                        onDragStart = onDragStart,
-                        onDrag = onDrag,
-                        onDragEnd = onDragEnd,
-                        onClick = { onEditTask(task) },
-                    )
+                    SwipeableTaskRow(
+                        onComplete = { onToggleComplete(task) },
+                        onDeleteRequest = { onDeleteRequest(task) },
+                        shape = DayRowShape,
+                    ) {
+                        DayTaskRow(
+                            task = task,
+                            trailingText = task.timeLabel(),
+                            trailingColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            onToggleComplete = onToggleComplete,
+                            isDragged = isDragged(task),
+                            onDragStart = onDragStart,
+                            onDrag = onDrag,
+                            onDragEnd = onDragEnd,
+                            onClick = { onEditTask(task) },
+                        )
+                    }
                 }
             }
         }

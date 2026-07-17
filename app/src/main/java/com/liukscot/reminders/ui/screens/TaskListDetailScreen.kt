@@ -70,6 +70,7 @@ fun TaskListDetailScreen(
     val state by viewModel.uiState.collectAsState()
     var editing by remember { mutableStateOf<DetailEditTarget>(DetailEditTarget.None) }
     var completedExpanded by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf<Task?>(null) }
     var menuExpanded by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -109,12 +110,20 @@ fun TaskListDetailScreen(
 
             LazyColumn(contentPadding = PaddingValues(bottom = 96.dp)) {
                 itemsIndexed(state.open, key = { _, group -> group.task.id }) { index, group ->
-                    TaskGroupCard(
-                        group = group,
-                        shape = groupedRowShape(index, state.open.size, bigRadius = 14.dp, smallRadius = 4.dp),
-                        onToggle = viewModel::toggleComplete,
-                        onEdit = { editing = DetailEditTarget.EditTask(group) },
-                    )
+                    val shape = groupedRowShape(index, state.open.size, bigRadius = 14.dp, smallRadius = 4.dp)
+                    SwipeableTaskRow(
+                        onComplete = { viewModel.toggleComplete(group.task) },
+                        onDeleteRequest = { deleting = group.task },
+                        shape = shape,
+                        modifier = Modifier.padding(bottom = 2.dp),
+                    ) {
+                        TaskGroupCard(
+                            group = group,
+                            shape = shape,
+                            onToggle = viewModel::toggleComplete,
+                            onEdit = { editing = DetailEditTarget.EditTask(group) },
+                        )
+                    }
                 }
                 item {
                     NewReminderRow(onClick = { editing = DetailEditTarget.NewTask })
@@ -129,11 +138,19 @@ fun TaskListDetailScreen(
                     }
                     if (completedExpanded) {
                         itemsIndexed(state.completed, key = { _, group -> "completed-${group.task.id}" }) { index, group ->
-                            CompletedTaskRow(
-                                task = group.task,
-                                shape = groupedRowShape(index, state.completed.size, bigRadius = 14.dp, smallRadius = 4.dp),
-                                onToggle = viewModel::toggleComplete,
-                            )
+                            val shape = groupedRowShape(index, state.completed.size, bigRadius = 14.dp, smallRadius = 4.dp)
+                            SwipeableTaskRow(
+                                onComplete = { viewModel.toggleComplete(group.task) },
+                                onDeleteRequest = { deleting = group.task },
+                                shape = shape,
+                                modifier = Modifier.padding(bottom = 2.dp),
+                            ) {
+                                CompletedTaskRow(
+                                    task = group.task,
+                                    shape = shape,
+                                    onToggle = viewModel::toggleComplete,
+                                )
+                            }
                         }
                     }
                 }
@@ -168,6 +185,10 @@ fun TaskListDetailScreen(
             existingTags = target.group.tags,
             preselectedListId = listId,
             onDismiss = { editing = DetailEditTarget.None },
+            onDelete = {
+                viewModel.deleteTask(target.group.task)
+                editing = DetailEditTarget.None
+            },
             onSave = { title, notes, taskListId, tags, flagged, priority, dueAt, hasDueTime, recFreq, recInterval, recByDay, recAnchor ->
                 viewModel.saveTask(
                     target.group.task, title, notes, taskListId, tags, flagged, priority, dueAt, hasDueTime,
@@ -185,6 +206,14 @@ fun TaskListDetailScreen(
         )
         DetailEditTarget.None -> Unit
     }
+
+    deleting?.let { task ->
+        DeleteReminderDialog(
+            title = task.title,
+            onDismiss = { deleting = null },
+            onConfirm = { viewModel.deleteTask(task); deleting = null },
+        )
+    }
 }
 
 private sealed interface DetailEditTarget {
@@ -195,7 +224,7 @@ private sealed interface DetailEditTarget {
 }
 
 @Composable
-private fun HeaderIconButton(icon: Int, contentDescription: String, onClick: () -> Unit) {
+internal fun HeaderIconButton(icon: Int, contentDescription: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(42.dp)
@@ -305,8 +334,9 @@ private fun CompletedSectionHeader(count: Int, expanded: Boolean, onClick: () ->
 
 // One card per task group: parent title/meta, then its sub-tasks stacked
 // directly below — no separate background per sub-task (matches mockup).
+// Shared with the smart-list screens, which show the same card outside a list.
 @Composable
-private fun TaskGroupCard(
+internal fun TaskGroupCard(
     group: TaskGroup,
     shape: Shape,
     onToggle: (Task) -> Unit,
@@ -316,7 +346,6 @@ private fun TaskGroupCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 2.dp)
             .background(MaterialTheme.colorScheme.surface, shape)
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
@@ -409,7 +438,6 @@ private fun CompletedTaskRow(task: Task, shape: Shape, onToggle: (Task) -> Unit)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 2.dp)
             .background(MaterialTheme.colorScheme.surface, shape)
             .padding(horizontal = 14.dp, vertical = 12.dp)
             .alpha(0.7f),
