@@ -102,6 +102,65 @@ class RemindersDatabaseTest {
         assertEquals(listOf(discountId), hits.map { it.id })
     }
 
+    // The four home cards each answer a different question, and the wrong predicate makes a card
+    // quietly lie — a completed-but-overdue task counted as overdue is the classic one.
+    @Test
+    fun smartListCounts_countEachCardIndependently() = runTest {
+        val listId = db.taskListDao().insert(TaskList(name = "Personal"))
+        val now = 1_752_364_800_000L
+        db.taskDao().insert(Task(listId = listId, title = "Flagged and overdue", flagged = true, dueAt = now - 1, createdAt = 0))
+        db.taskDao().insert(Task(listId = listId, title = "Flagged, no date", flagged = true, createdAt = 0))
+        db.taskDao().insert(Task(listId = listId, title = "Due later", dueAt = now + 1, createdAt = 0))
+        db.taskDao().insert(Task(listId = listId, title = "Done", completed = true, createdAt = 0))
+        // Completed tasks are nobody's problem: they count as neither open, flagged nor overdue.
+        db.taskDao().insert(
+            Task(listId = listId, title = "Done but was overdue", flagged = true, completed = true, dueAt = now - 1, createdAt = 0),
+        )
+
+        val counts = db.taskDao().smartListCounts(now).first()
+
+        assertEquals(2, counts.flagged)
+        assertEquals(3, counts.open)
+        assertEquals(2, counts.completed)
+        assertEquals(1, counts.overdue)
+    }
+
+    @Test
+    fun smartListCounts_areAllZeroOnAnEmptyDatabase() = runTest {
+        // SUM over no rows is NULL, not 0 — without COALESCE this doesn't even return.
+        val counts = db.taskDao().smartListCounts(0).first()
+
+        assertEquals(SmartListCounts(), counts)
+    }
+
+    @Test
+    fun getFlagged_and_getCompleted_returnOnlyTheirOwnTasks() = runTest {
+        val listId = db.taskListDao().insert(TaskList(name = "Personal"))
+        val flaggedId = db.taskDao().insert(Task(listId = listId, title = "Flagged", flagged = true, createdAt = 0))
+        val doneId = db.taskDao().insert(Task(listId = listId, title = "Done", completed = true, createdAt = 0))
+        // Flagged but already done: belongs to Completed, not Flagged.
+        val bothId = db.taskDao().insert(
+            Task(listId = listId, title = "Flagged and done", flagged = true, completed = true, createdAt = 0),
+        )
+
+        assertEquals(listOf(flaggedId), db.taskDao().getFlagged().first().map { it.id })
+        assertEquals(setOf(doneId, bothId), db.taskDao().getCompleted().first().map { it.id }.toSet())
+    }
+
+    @Test
+    fun getAllOpen_sortsUndatedTasksAfterDatedOnes() = runTest {
+        val listId = db.taskListDao().insert(TaskList(name = "Personal"))
+        val now = 1_752_364_800_000L
+        val undatedId = db.taskDao().insert(Task(listId = listId, title = "Someday", createdAt = 0))
+        val laterId = db.taskDao().insert(Task(listId = listId, title = "Later", dueAt = now + 1000, createdAt = 0))
+        val soonerId = db.taskDao().insert(Task(listId = listId, title = "Sooner", dueAt = now, createdAt = 0))
+        db.taskDao().insert(Task(listId = listId, title = "Done", completed = true, createdAt = 0))
+
+        val open = db.taskDao().getAllOpen().first()
+
+        assertEquals(listOf(soonerId, laterId, undatedId), open.map { it.id })
+    }
+
     @Test
     fun tasksDueBetween_returnsOnlyTasksForTheSelectedDay() = runTest {
         val listId = db.taskListDao().insert(TaskList(name = "Personal"))
