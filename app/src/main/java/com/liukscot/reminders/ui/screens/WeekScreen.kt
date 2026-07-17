@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -100,6 +101,17 @@ fun WeekScreen(resetToTodayTick: Int = 0, viewModel: WeekViewModel = rememberWee
     val entries = remember(state.days) { buildWeekEntries(state.days) }
     val todayIndex = remember(entries) { entries.indexOfFirst { it is WeekEntry.DayRow && it.day.date == today } }
     val listState = rememberLazyListState()
+    // The header tracks whatever the list is scrolled to — its month for the title, the week it
+    // falls in for the subtitle. Take the first visible entry's day (a week label has no date of
+    // its own, so look forward to the next day row), falling back to today before the list lays out.
+    val topVisibleDay by remember(entries) {
+        derivedStateOf {
+            entries.asSequence()
+                .drop(listState.firstVisibleItemIndex)
+                .firstNotNullOfOrNull { (it as? WeekEntry.DayRow)?.day?.date }
+                ?: today
+        }
+    }
     var hasCenteredOnToday by remember { mutableStateOf(false) }
     LaunchedEffect(todayIndex) {
         if (!hasCenteredOnToday && todayIndex >= 0) {
@@ -115,7 +127,7 @@ fun WeekScreen(resetToTodayTick: Int = 0, viewModel: WeekViewModel = rememberWee
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            WeekHeader(today)
+            WeekHeader(topVisibleDay)
             CompositionLocalProvider(LocalViewConfiguration provides fastDragViewConfiguration) {
                 LazyColumn(
                     state = listState,
@@ -307,14 +319,18 @@ private fun WeekDayRow(
     }
 }
 
-// Fixed header, mirroring the Day screen's: a constant "This Week" title with the current month
-// underneath — replacing the per-month sticky headers, whose fade-and-vanish while scrolling was
-// what read as broken.
+private val MonthTitleFormatter = DateTimeFormatter.ofPattern("MMMM", Locale.ENGLISH)
+private val WeekOfFormatter = DateTimeFormatter.ofPattern("MMMM d", Locale.ENGLISH)
+
+// Fixed header that tracks the scroll: the title is the month at the top of the list, the subtitle
+// the week it belongs to. Replaces the per-month sticky headers, whose fade-and-vanish while
+// scrolling was what read as broken.
 @Composable
-private fun WeekHeader(today: LocalDate) {
+private fun WeekHeader(topDay: LocalDate) {
+    val weekMonday = topDay.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     Column(modifier = Modifier.padding(horizontal = Dimens.screenEdge)) {
         Text(
-            text = "This Week",
+            text = topDay.format(MonthTitleFormatter),
             fontSize = 30.sp,
             lineHeight = 36.sp,
             fontWeight = FontWeight.ExtraBold,
@@ -323,7 +339,7 @@ private fun WeekHeader(today: LocalDate) {
             modifier = Modifier.padding(top = Dimens.sp2, bottom = 2.dp),
         )
         Text(
-            text = today.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)),
+            text = "Week of ${weekMonday.format(WeekOfFormatter)}",
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = Dimens.radiusMd),
