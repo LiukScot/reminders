@@ -1,6 +1,13 @@
 package com.liukscot.reminders.ui
 
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -160,40 +167,59 @@ fun RemindersApp(deepLinkListId: Long? = null) {
         }
         }
 
+        val navBarVisible = current != null
+        // Keep the last tab so the nav bar can still draw itself while it collapses away — during
+        // the exit `current` is already null.
+        var lastTab by remember { mutableStateOf(current) }
+        if (current != null) lastTab = current
+
         // The FAB is drawn once, here, fixed — so it stays put while pages slide underneath instead
-        // of swiping off and back on. It clears the nav bar (bottom 88.dp) on the tabs that show one,
-        // and sits lower (18.dp) on a drill-down like a list's detail, which has no nav bar.
+        // of swiping off and back on. It rides down linearly from above the nav bar (88.dp) to near
+        // the edge (18.dp) as the bar collapses on a drill-down, tracking it rather than jumping.
+        val fabBottom by animateDpAsState(
+            targetValue = if (navBarVisible) 88.dp else 18.dp,
+            animationSpec = tween(300, easing = LinearEasing),
+            label = "fabBottom",
+        )
         fabState.onAdd?.let { onAdd ->
             ReminderActionButtons(
                 onAddReminder = onAdd,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .navigationBarsPadding()
-                    .padding(end = Dimens.screenEdge, bottom = if (current != null) 88.dp else 18.dp),
+                    .padding(end = Dimens.screenEdge, bottom = fabBottom),
             )
         }
 
-        if (current != null) {
-            FloatingNavBar(
-                current = current,
-                onSelect = { destination ->
-                    if (destination == current) {
-                        when (destination) {
-                            Destination.Day -> dayResetTick++
-                            Destination.Week -> weekResetTick++
-                            else -> Unit
+        // Flattens shut instead of vanishing: shrinks vertically toward its own centre while fading,
+        // so opening a list folds the bar away rather than popping it out.
+        AnimatedVisibility(
+            visible = navBarVisible,
+            enter = expandVertically(tween(300), expandFrom = Alignment.CenterVertically) + fadeIn(tween(300)),
+            exit = shrinkVertically(tween(300), shrinkTowards = Alignment.CenterVertically) + fadeOut(tween(300)),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding(),
+        ) {
+            lastTab?.let { tab ->
+                FloatingNavBar(
+                    current = tab,
+                    onSelect = { destination ->
+                        if (destination == tab) {
+                            when (destination) {
+                                Destination.Day -> dayResetTick++
+                                Destination.Week -> weekResetTick++
+                                else -> Unit
+                            }
                         }
-                    }
-                    navController.navigate(destination.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding(),
-            )
+                        navController.navigate(destination.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                )
+            }
         }
     }
 }
