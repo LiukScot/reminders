@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.liukscot.reminders.R
+import com.liukscot.reminders.ui.ScreenFab
 import com.liukscot.reminders.data.Task
 import com.liukscot.reminders.ui.theme.Dimens
 import com.liukscot.reminders.ui.theme.MonoFontFamily
@@ -162,13 +163,7 @@ fun WeekScreen(resetToTodayTick: Int = 0, viewModel: WeekViewModel = rememberWee
             }
         }
 
-        ReminderActionButtons(
-            onAddReminder = { sheetTarget = ReminderSheetTarget.New(today) },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(end = Dimens.screenEdge, bottom = 88.dp),
-        )
+        ScreenFab(onAdd = { sheetTarget = ReminderSheetTarget.New(today) })
     }
 
     when (val target = sheetTarget) {

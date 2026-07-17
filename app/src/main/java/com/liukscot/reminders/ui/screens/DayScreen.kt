@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import com.liukscot.reminders.R
+import com.liukscot.reminders.ui.ScreenFab
 import com.liukscot.reminders.data.Task
 import com.liukscot.reminders.ui.theme.CheckboxIdleBorder
 import com.liukscot.reminders.ui.theme.Dimens
@@ -278,13 +279,7 @@ fun DayScreen(resetToTodayTick: Int = 0, viewModel: DayViewModel = rememberDayVi
         }
         }
 
-        ReminderActionButtons(
-            onAddReminder = { sheetTarget = ReminderSheetTarget.New(state.selectedDate) },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(end = Dimens.screenEdge, bottom = 88.dp),
-        )
+        ScreenFab(onAdd = { sheetTarget = ReminderSheetTarget.New(state.selectedDate) })
     }
 
     when (val target = sheetTarget) {

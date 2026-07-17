@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -32,6 +33,10 @@ import androidx.navigation.navArgument
 import com.liukscot.reminders.RemindersApplication
 import kotlinx.coroutines.flow.first
 import com.liukscot.reminders.data.SmartList
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.CompositionLocalProvider
+import com.liukscot.reminders.ui.screens.ReminderActionButtons
+import com.liukscot.reminders.ui.theme.Dimens
 import com.liukscot.reminders.ui.navigation.Destination
 import com.liukscot.reminders.ui.navigation.FloatingNavBar
 import com.liukscot.reminders.ui.screens.ListsScreen
@@ -102,11 +107,14 @@ fun RemindersApp(deepLinkListId: Long? = null) {
         }
     }
 
+    val fabState = remember { FabState() }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
+        CompositionLocalProvider(LocalFabState provides fabState) {
         NavHost(
             navController = navController,
             startDestination = resolvedStart,
@@ -149,6 +157,20 @@ fun RemindersApp(deepLinkListId: Long? = null) {
                 val listId = entry.arguments?.getLong("listId") ?: return@composable
                 TaskListDetailScreen(listId = listId, onBack = { navController.popBackStack() })
             }
+        }
+        }
+
+        // The FAB is drawn once, here, fixed — so it stays put while pages slide underneath instead
+        // of swiping off and back on. It clears the nav bar (bottom 88.dp) on the tabs that show one,
+        // and sits lower (18.dp) on a drill-down like a list's detail, which has no nav bar.
+        fabState.onAdd?.let { onAdd ->
+            ReminderActionButtons(
+                onAddReminder = onAdd,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = Dimens.screenEdge, bottom = if (current != null) 88.dp else 18.dp),
+            )
         }
 
         if (current != null) {

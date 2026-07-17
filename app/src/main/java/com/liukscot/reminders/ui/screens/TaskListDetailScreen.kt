@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.liukscot.reminders.R
+import com.liukscot.reminders.ui.ScreenFab
 import com.liukscot.reminders.data.Task
 import com.liukscot.reminders.ui.theme.CheckboxIdleBorder
 import com.liukscot.reminders.ui.theme.Line1
@@ -158,13 +159,7 @@ fun TaskListDetailScreen(
             }
         }
 
-        ReminderActionButtons(
-            onAddReminder = { editing = DetailEditTarget.NewTask },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(end = 18.dp, bottom = 18.dp),
-        )
+        ScreenFab(onAdd = { editing = DetailEditTarget.NewTask })
     }
 
     when (val target = editing) {

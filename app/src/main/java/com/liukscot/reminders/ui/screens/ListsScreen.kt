@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.liukscot.reminders.R
+import com.liukscot.reminders.ui.ScreenFab
 import com.liukscot.reminders.data.ListIcons
 import com.liukscot.reminders.data.SmartList
 import com.liukscot.reminders.data.TaskList
@@ -137,15 +138,7 @@ fun ListsScreen(
             }
         }
 
-        // 88dp mirrors the mockup's FAB bottom:88 vs floating nav's
-        // bottom:10/height:62 — clears the nav bar with the same gap.
-        ReminderActionButtons(
-            onAddReminder = { editing = EditTarget.NewTask },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(end = 18.dp, bottom = 88.dp),
-        )
+        ScreenFab(onAdd = { editing = EditTarget.NewTask })
     }
 
     when (val target = editing) {
