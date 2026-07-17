@@ -11,8 +11,7 @@ import com.liukscot.reminders.notifications.createReminderNotificationChannel
 
 class RemindersApplication : Application() {
     val repository: RemindersRepository by lazy {
-        val db = RemindersDatabase.getInstance(this)
-        RemindersRepository(db.taskDao(), db.taskListDao(), db.tagDao())
+        RemindersRepository(RemindersDatabase.getInstance(this))
     }
 
     val settingsRepository: SettingsRepository by lazy { SettingsRepository(this) }

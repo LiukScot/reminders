@@ -1,5 +1,9 @@
 package com.liukscot.reminders.ui.screens
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -42,17 +48,38 @@ import androidx.compose.ui.unit.sp
 import com.liukscot.reminders.R
 import com.liukscot.reminders.data.AiProvider
 import com.liukscot.reminders.ui.theme.MonoFontFamily
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 // Ref: Reminders App Mockup "Settings" screen (data-screen-label="Settings")
-// for section/row styling. Only the "Default list" and "AI model" rows are
-// built here — the mockup's other sections (backup, API key, notifications)
-// belong to their own not-yet-built issues.
+// for section/row styling. The mockup's "Auto backup" row is a scheduled
+// backup, its own not-yet-built issue — this section is the manual export and
+// restore, and reuses that row's icon and subtitle treatment.
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
     val state by viewModel.uiState.collectAsState()
     var pickerOpen by remember { mutableStateOf(false) }
     var providerPickerOpen by remember { mutableStateOf(false) }
     var keyDialogOpen by remember { mutableStateOf(false) }
+    var restoreUri by remember { mutableStateOf<Uri?>(null) }
+
+    val message by viewModel.message.collectAsState()
+    val context = LocalContext.current
+    message?.let {
+        LaunchedEffect(it) {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.clearMessage()
+        }
+    }
+
+    // The system pickers own the file: no storage permission, and the user picks where a backup
+    // lands and which one to restore. A null uri means they backed out of the picker.
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(BACKUP_MIME_TYPE),
+    ) { uri -> uri?.let(viewModel::exportTo) }
+    val restoreLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> restoreUri = uri }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         Text(
@@ -85,6 +112,31 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             value = state.defaultListName ?: "None",
             shape = groupedRowShape(0, 1, bigRadius = 14.dp, smallRadius = 4.dp),
             onClick = { pickerOpen = true },
+        )
+
+        Spacer(modifier = Modifier.height(22.dp))
+        Text(
+            text = "BACKUP & EXPORT",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.3.sp,
+            color = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        SettingsRow(
+            icon = R.drawable.ic_database,
+            title = "Export to file",
+            subtitle = "All lists, tasks and tags",
+            shape = groupedRowShape(0, 2, bigRadius = 14.dp, smallRadius = 4.dp),
+            onClick = { exportLauncher.launch(defaultBackupFileName()) },
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        SettingsRow(
+            icon = R.drawable.ic_download,
+            title = "Restore from file",
+            subtitle = "Replaces everything on this device",
+            shape = groupedRowShape(1, 2, bigRadius = 14.dp, smallRadius = 4.dp),
+            onClick = { restoreLauncher.launch(BACKUP_PICKER_MIME_TYPES) },
         )
 
         Spacer(modifier = Modifier.height(22.dp))
@@ -136,7 +188,32 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             onSave = { key -> viewModel.setApiKey(key); keyDialogOpen = false },
         )
     }
+    // Restoring drops every reminder currently on the device, and there is no undo — so it asks.
+    restoreUri?.let { uri ->
+        AlertDialog(
+            onDismissRequest = { restoreUri = null },
+            title = { Text("Restore backup?") },
+            text = { Text("Every list, reminder and tag on this device is replaced by the ones in the file. This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.restoreFrom(uri); restoreUri = null }) { Text("Restore") }
+            },
+            dismissButton = {
+                TextButton(onClick = { restoreUri = null }) { Text("Cancel") }
+            },
+        )
+    }
 }
+
+private const val BACKUP_MIME_TYPE = "application/json"
+
+// Backups that have been through a share sheet or a cloud drive often come back typed as a generic
+// binary, and the picker greys out anything it isn't told to accept.
+private val BACKUP_PICKER_MIME_TYPES = arrayOf(BACKUP_MIME_TYPE, "application/octet-stream")
+
+private val BackupFileNameFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+private fun defaultBackupFileName(): String =
+    "reminders-${LocalDate.now().format(BackupFileNameFormatter)}.json"
 
 @Composable
 private fun AiProviderPickerDialog(
@@ -209,8 +286,17 @@ private fun ApiKeyDialog(
     )
 }
 
+// Ref: mockup rows carry either a trailing value ("••••2f4a") or a subtitle under the title
+// ("Daily, over Wi-Fi · last run ~2 h ago"), never both.
 @Composable
-private fun SettingsRow(icon: Int, title: String, value: String, shape: Shape, onClick: () -> Unit) {
+private fun SettingsRow(
+    icon: Int,
+    title: String,
+    shape: Shape,
+    onClick: () -> Unit,
+    value: String? = null,
+    subtitle: String? = null,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -234,19 +320,29 @@ private fun SettingsRow(icon: Int, title: String, value: String, shape: Shape, o
                 modifier = Modifier.size(24.dp),
             )
         }
-        Text(
-            text = title,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = value,
-            fontFamily = MonoFontFamily,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            subtitle?.let {
+                Text(
+                    text = it,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        value?.let {
+            Text(
+                text = it,
+                fontFamily = MonoFontFamily,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }

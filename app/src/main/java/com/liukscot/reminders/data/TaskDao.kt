@@ -44,6 +44,12 @@ interface TaskDao {
     @Query("SELECT listId, COUNT(*) AS count FROM tasks WHERE completed = 0 GROUP BY listId")
     fun openCountsByList(): Flow<List<ListCount>>
 
+    @Query("SELECT * FROM tasks")
+    suspend fun getAllOnce(): List<Task>
+
+    @Insert
+    suspend fun insertAll(tasks: List<Task>)
+
     @Insert
     suspend fun insert(task: Task): Long
 
