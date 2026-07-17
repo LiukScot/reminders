@@ -102,6 +102,7 @@ fun DayScreen(resetToTodayTick: Int = 0, viewModel: DayViewModel = rememberDayVi
     }
     val state by viewModel.uiState.collectAsState()
     var sheetTarget by remember { mutableStateOf<ReminderSheetTarget>(ReminderSheetTarget.None) }
+    var deleting by remember { mutableStateOf<Task?>(null) }
     var draggedTask by remember { mutableStateOf<Task?>(null) }
     var dragPosition by remember { mutableStateOf<Offset?>(null) }
     // ponytail: drop target = last section header above the finger, not a precise per-row
@@ -193,20 +194,26 @@ fun DayScreen(resetToTodayTick: Int = 0, viewModel: DayViewModel = rememberDayVi
                     }
                 }
                 itemsIndexed(state.overdueTasks, key = { _, task -> "overdue-${task.id}" }) { index, task ->
-                    DayTaskRow(
-                        task = task,
-                        trailingText = task.overdueDateLabel(),
-                        trailingColor = MaterialTheme.colorScheme.error,
-                        onToggleComplete = viewModel::toggleComplete,
-                        isDragged = draggedTask?.id == task.id,
-                        onDragStart = { t, position -> draggedTask = t; dragPosition = position },
-                        onDrag = { dragPosition = it },
-                        onDragEnd = ::finishTaskDrag,
-                        onClick = { sheetTarget = ReminderSheetTarget.Edit(task, state.tagsByTaskId[task.id].orEmpty()) },
+                    SwipeableTaskRow(
+                        onComplete = { viewModel.toggleComplete(task) },
+                        onDeleteRequest = { deleting = task },
+                        shape = DayRowShape,
                         modifier = Modifier
                             .animateItem()
                             .padding(top = if (index == 0) 0.dp else 6.dp),
-                    )
+                    ) {
+                        DayTaskRow(
+                            task = task,
+                            trailingText = task.overdueDateLabel(),
+                            trailingColor = MaterialTheme.colorScheme.error,
+                            onToggleComplete = viewModel::toggleComplete,
+                            isDragged = draggedTask?.id == task.id,
+                            onDragStart = { t, position -> draggedTask = t; dragPosition = position },
+                            onDrag = { dragPosition = it },
+                            onDragEnd = ::finishTaskDrag,
+                            onClick = { sheetTarget = ReminderSheetTarget.Edit(task, state.tagsByTaskId[task.id].orEmpty()) },
+                        )
+                    }
                 }
                 item(key = "overdue-spacer") { Spacer(Modifier.animateItem().height(Dimens.sp4)) }
             }
@@ -238,16 +245,10 @@ fun DayScreen(resetToTodayTick: Int = 0, viewModel: DayViewModel = rememberDayVi
                     }
                 }
                 itemsIndexed(tasks, key = { _, task -> "slot-task-${task.id}" }) { index, task ->
-                    DayTaskRow(
-                        task = task,
-                        trailingText = task.timeLabel(),
-                        trailingColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        onToggleComplete = viewModel::toggleComplete,
-                        isDragged = draggedTask?.id == task.id,
-                        onDragStart = { t, position -> draggedTask = t; dragPosition = position },
-                        onDrag = { dragPosition = it },
-                        onDragEnd = ::finishTaskDrag,
-                        onClick = { sheetTarget = ReminderSheetTarget.Edit(task, state.tagsByTaskId[task.id].orEmpty()) },
+                    SwipeableTaskRow(
+                        onComplete = { viewModel.toggleComplete(task) },
+                        onDeleteRequest = { deleting = task },
+                        shape = DayRowShape,
                         modifier = Modifier
                             .animateItem()
                             .padding(top = if (index == 0) 0.dp else 6.dp)
@@ -258,7 +259,19 @@ fun DayScreen(resetToTodayTick: Int = 0, viewModel: DayViewModel = rememberDayVi
                                     Modifier
                                 },
                             ),
-                    )
+                    ) {
+                        DayTaskRow(
+                            task = task,
+                            trailingText = task.timeLabel(),
+                            trailingColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            onToggleComplete = viewModel::toggleComplete,
+                            isDragged = draggedTask?.id == task.id,
+                            onDragStart = { t, position -> draggedTask = t; dragPosition = position },
+                            onDrag = { dragPosition = it },
+                            onDragEnd = ::finishTaskDrag,
+                            onClick = { sheetTarget = ReminderSheetTarget.Edit(task, state.tagsByTaskId[task.id].orEmpty()) },
+                        )
+                    }
                 }
                 item(key = "slot-spacer-${slot.name}") { Spacer(Modifier.animateItem().height(Dimens.sp4)) }
             }
@@ -295,6 +308,10 @@ fun DayScreen(resetToTodayTick: Int = 0, viewModel: DayViewModel = rememberDayVi
             existingTags = target.tags,
             preselectedListId = target.task.listId,
             onDismiss = { sheetTarget = ReminderSheetTarget.None },
+            onDelete = {
+                viewModel.deleteTask(target.task)
+                sheetTarget = ReminderSheetTarget.None
+            },
             onSave = { title, notes, listId, tags, flagged, priority, dueAt, hasDueTime, recFreq, recInterval, recByDay, recAnchor ->
                 viewModel.saveTask(
                     target.task, title, notes, listId, tags, flagged, priority, dueAt, hasDueTime,
@@ -302,6 +319,14 @@ fun DayScreen(resetToTodayTick: Int = 0, viewModel: DayViewModel = rememberDayVi
                 )
                 sheetTarget = ReminderSheetTarget.None
             },
+        )
+    }
+
+    deleting?.let { task ->
+        DeleteReminderDialog(
+            title = task.title,
+            onDismiss = { deleting = null },
+            onConfirm = { viewModel.deleteTask(task); deleting = null },
         )
     }
 }
@@ -435,6 +460,9 @@ private fun SlotHeaderRow(slot: DaySlot, taskCount: Int) {
     }
 }
 
+// The row's corners; the swipe background behind it has to be cut to the same ones.
+internal val DayRowShape = RoundedCornerShape(12.dp)
+
 @Composable
 internal fun DayTaskRow(
     task: Task,
@@ -448,7 +476,7 @@ internal fun DayTaskRow(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     containerModifier: Modifier = Modifier
-        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+        .background(MaterialTheme.colorScheme.surface, DayRowShape)
         .padding(horizontal = Dimens.sp3, vertical = 11.dp),
 ) {
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }

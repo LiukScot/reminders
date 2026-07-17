@@ -81,6 +81,14 @@ class TaskListDetailViewModel(
         }
     }
 
+    fun deleteTask(task: Task) {
+        viewModelScope.launch {
+            // Cancel first: the row is about to stop existing, and an alarm outlives it otherwise.
+            reminderScheduler.cancel(task.id)
+            repository.deleteTask(task)
+        }
+    }
+
     fun renameList(newName: String) {
         val current = uiState.value.list ?: return
         viewModelScope.launch { repository.renameList(current, newName) }

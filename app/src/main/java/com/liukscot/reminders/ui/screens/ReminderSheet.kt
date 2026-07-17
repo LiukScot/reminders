@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
@@ -29,6 +31,7 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -123,6 +126,8 @@ fun ReminderSheet(
     preselectedListId: Long?,
     initialDate: LocalDate? = null,
     onDismiss: () -> Unit,
+    // Null while creating: there is nothing to delete yet.
+    onDelete: (() -> Unit)? = null,
     onSave: (
         title: String,
         notes: String?,
@@ -160,6 +165,7 @@ fun ReminderSheet(
     var recurrenceByDay by remember { mutableStateOf(existingRule?.byDay ?: emptySet<DayOfWeek>()) }
     var usingCustomRecurrence by remember { mutableStateOf(existingRule?.let(::isCustomRule) ?: false) }
     var showCustomRecurrenceSheet by remember { mutableStateOf(false) }
+    var confirmingDelete by remember { mutableStateOf(false) }
     // Issue #18: recognize date/time/recurrence phrases in the title (Italian first, English
     // second — see ReminderTextParser). While typing, the recognized phrase is only highlighted
     // (visual transformation below); pressing Enter commits — it lifts the phrase into the sheet's
@@ -460,7 +466,30 @@ fun ReminderSheet(
                 },
                 enabled = title.isNotBlank() && selectedListId != null,
             )
+            if (existingTask != null && onDelete != null) {
+                TextButton(
+                    onClick = { confirmingDelete = true },
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_trash_2),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Delete reminder", color = MaterialTheme.colorScheme.error)
+                }
+            }
         }
+    }
+
+    if (confirmingDelete && onDelete != null) {
+        DeleteReminderDialog(
+            title = existingTask?.title.orEmpty(),
+            onDismiss = { confirmingDelete = false },
+            onConfirm = { confirmingDelete = false; onDelete() },
+        )
     }
 
     if (showCustomRecurrenceSheet) {

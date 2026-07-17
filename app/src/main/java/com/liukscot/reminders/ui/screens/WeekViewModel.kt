@@ -69,6 +69,14 @@ class WeekViewModel(
         initialValue = WeekUiState(),
     )
 
+    fun deleteTask(task: Task) {
+        viewModelScope.launch {
+            // Cancel first: the row is about to stop existing, and an alarm outlives it otherwise.
+            reminderScheduler.cancel(task.id)
+            repository.deleteTask(task)
+        }
+    }
+
     fun toggleComplete(task: Task) {
         viewModelScope.launch {
             reminderScheduler.schedule(repository.toggleComplete(task))

@@ -56,6 +56,7 @@ fun SearchScreen(onBack: () -> Unit, viewModel: SearchViewModel = rememberSearch
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
     var editingTask by remember { mutableStateOf<Task?>(null) }
+    var deleting by remember { mutableStateOf<Task?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.screenEdge)) {
         Row(
@@ -103,12 +104,20 @@ fun SearchScreen(onBack: () -> Unit, viewModel: SearchViewModel = rememberSearch
             state.groups.forEach { group ->
                 item(key = "header-${group.listName}") { GroupHeader(group.listName) }
                 itemsIndexed(group.tasks, key = { _, task -> task.id }) { index, task ->
-                    SearchTaskRow(
-                        task = task,
-                        shape = groupedRowShape(index, group.tasks.size, bigRadius = Dimens.radiusMd, smallRadius = 4.dp),
-                        onToggle = { viewModel.toggleComplete(task) },
-                        onClick = { editingTask = task },
-                    )
+                    val shape = groupedRowShape(index, group.tasks.size, bigRadius = Dimens.radiusMd, smallRadius = 4.dp)
+                    SwipeableTaskRow(
+                        onComplete = { viewModel.toggleComplete(task) },
+                        onDeleteRequest = { deleting = task },
+                        shape = shape,
+                        modifier = Modifier.padding(bottom = 2.dp),
+                    ) {
+                        SearchTaskRow(
+                            task = task,
+                            shape = shape,
+                            onToggle = { viewModel.toggleComplete(task) },
+                            onClick = { editingTask = task },
+                        )
+                    }
                 }
             }
         }
@@ -121,6 +130,7 @@ fun SearchScreen(onBack: () -> Unit, viewModel: SearchViewModel = rememberSearch
             existingTags = state.tagsByTaskId[task.id].orEmpty(),
             preselectedListId = task.listId,
             onDismiss = { editingTask = null },
+            onDelete = { viewModel.deleteTask(task); editingTask = null },
             onSave = { title, notes, listId, tags, flagged, priority, dueAt, hasDueTime, recFreq, recInterval, recByDay, recAnchor ->
                 viewModel.saveTask(
                     task, title, notes, listId, tags, flagged, priority, dueAt, hasDueTime,
@@ -128,6 +138,14 @@ fun SearchScreen(onBack: () -> Unit, viewModel: SearchViewModel = rememberSearch
                 )
                 editingTask = null
             },
+        )
+    }
+
+    deleting?.let { task ->
+        DeleteReminderDialog(
+            title = task.title,
+            onDismiss = { deleting = null },
+            onConfirm = { viewModel.deleteTask(task); deleting = null },
         )
     }
 }
@@ -191,7 +209,6 @@ private fun SearchTaskRow(task: Task, shape: Shape, onToggle: () -> Unit, onClic
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 2.dp)
             .background(MaterialTheme.colorScheme.surface, shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = Dimens.sp3),
