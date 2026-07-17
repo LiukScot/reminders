@@ -1,6 +1,6 @@
 package com.liukscot.reminders.data
 
-import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,7 +15,7 @@ import org.json.JSONObject
 // returns a draft the user confirms. Throws on transport/HTTP/parse failure so the caller shows an
 // error rather than a silent no-op.
 interface VoiceTaskParser {
-    suspend fun parse(transcript: String, today: LocalDate, lists: List<String>): VoiceTaskDraft
+    suspend fun parse(transcript: String, now: LocalDateTime, lists: List<String>): VoiceTaskDraft
 }
 
 // NOTE: request shapes and model ids follow each provider's documented format but haven't yet been
@@ -45,13 +45,13 @@ private class MistralVoiceParser(
     private val apiKey: String,
     private val http: OkHttpClient,
 ) : VoiceTaskParser {
-    override suspend fun parse(transcript: String, today: LocalDate, lists: List<String>): VoiceTaskDraft {
+    override suspend fun parse(transcript: String, now: LocalDateTime, lists: List<String>): VoiceTaskDraft {
         val body = JSONObject().apply {
             put("model", MISTRAL_MODEL)
             put("temperature", 0)
             put("response_format", JSONObject().put("type", "json_object"))
             put("messages", JSONArray().apply {
-                put(JSONObject().put("role", "system").put("content", voiceTaskInstruction(today, lists)))
+                put(JSONObject().put("role", "system").put("content", voiceTaskInstruction(now, lists)))
                 put(JSONObject().put("role", "user").put("content", transcript))
             })
         }
@@ -67,7 +67,7 @@ private class GeminiVoiceParser(
     private val apiKey: String,
     private val http: OkHttpClient,
 ) : VoiceTaskParser {
-    override suspend fun parse(transcript: String, today: LocalDate, lists: List<String>): VoiceTaskDraft {
+    override suspend fun parse(transcript: String, now: LocalDateTime, lists: List<String>): VoiceTaskDraft {
         val body = JSONObject().apply {
             put(
                 "contents",
@@ -75,7 +75,7 @@ private class GeminiVoiceParser(
                     JSONObject().put(
                         "parts",
                         JSONArray()
-                            .put(JSONObject().put("text", voiceTaskInstruction(today, lists)))
+                            .put(JSONObject().put("text", voiceTaskInstruction(now, lists)))
                             .put(JSONObject().put("text", transcript)),
                     ),
                 ),

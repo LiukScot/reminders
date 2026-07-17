@@ -2,6 +2,7 @@ package com.liukscot.reminders.data
 
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import org.json.JSONObject
 
@@ -16,19 +17,23 @@ data class VoiceTaskDraft(
 )
 
 // Shared across both providers: they receive the same instruction and the same JSON shape, so the
-// app-side mapping (parseVoiceTaskDraft) is provider-agnostic. `today` is injected so the model
-// resolves relative dates ("tomorrow") against the device clock; `lists` lets it route the reminder
-// to the list the user named ("in the shopping list").
-fun voiceTaskInstruction(today: LocalDate, lists: List<String>): String = """
+// app-side mapping (parseVoiceTaskDraft) is provider-agnostic. `now` (date AND time) is injected so
+// the model can resolve every relative expression — "tomorrow", but also "in 10 minutes" or "in an
+// hour", which are impossible without the current time. `lists` lets it route the reminder to the
+// list the user named ("in the shopping list").
+fun voiceTaskInstruction(now: LocalDateTime, lists: List<String>): String = """
     You convert a spoken reminder into a single JSON object with this exact shape:
     {"title": string, "date": string|null, "time": string|null, "recurrence": {"frequency": "DAILY"|"WEEKLY"|"MONTHLY"|"YEARLY", "interval": number, "byDay": ["MONDAY"..."SUNDAY"]}|null, "list": string|null}
+    The current date and time is ${now.format(NOW_FORMAT)} (${now.dayOfWeek.name}). Resolve every relative expression against it.
     - title: the task only, with the date/time/recurrence AND list words removed. E.g. "buy pasta in the shopping list" → title "buy pasta".
-    - date: ISO yyyy-MM-dd, or null if none was said. Today is $today; resolve relative dates against it.
-    - time: 24h HH:mm, or null if no time was said.
+    - date: ISO yyyy-MM-dd, or null if none was said. "tomorrow", "next Monday" resolve against the current date.
+    - time: 24h HH:mm, or null if no time was said. For relative times like "in 10 minutes" or "in 2 hours", add to the current time and output the resulting clock time; if it crosses midnight, advance the date too.
     - recurrence: null unless the reminder repeats. interval defaults to 1; byDay only for weekly-on-specific-days.
     - list: exactly one of [${lists.joinToString(", ") { "\"$it\"" }}] if the user named a list (match loosely, e.g. "spesa"/"groceries"), otherwise null.
     Reply with only the JSON, no prose.
 """.trimIndent()
+
+private val NOW_FORMAT = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
 // Parses the model's JSON reply into a draft. Throws if the reply isn't valid JSON (a failed call
 // the caller must surface). Individual malformed optional fields degrade to null rather than fail
