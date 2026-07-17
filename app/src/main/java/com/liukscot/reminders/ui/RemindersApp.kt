@@ -1,7 +1,6 @@
 package com.liukscot.reminders.ui
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -15,10 +14,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -27,6 +29,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.liukscot.reminders.RemindersApplication
+import kotlinx.coroutines.flow.first
 import com.liukscot.reminders.data.SmartList
 import com.liukscot.reminders.ui.navigation.Destination
 import com.liukscot.reminders.ui.navigation.FloatingNavBar
@@ -45,11 +49,41 @@ private const val SEARCH_ROUTE = "search"
 private const val SMART_LIST_ROUTE = "smartList/{smartList}"
 private fun smartListRoute(smartList: SmartList) = "smartList/${smartList.name}"
 
-// Routes pushed from Lists as a drill-down: those slide, tab switches don't.
-private val DETAIL_ROUTES = setOf(LIST_DETAIL_ROUTE, SMART_LIST_ROUTE)
+// Everything gets one horizontal slide, its direction set by where the target sits relative to the
+// source: tabs are ordered left-to-right as they appear in the nav bar, and drill-down routes
+// (a list's detail, a smart list, search) count as further right than any tab so pushing into one
+// always slides in from the right and popping sends it back out. One rule covers tab switches and
+// drill-downs alike, which is why no destination needs its own transition override.
+private const val DRILL_DOWN_ORDER = 100
+
+private fun routeOrder(route: String?): Int =
+    Destination.entries.indexOfFirst { it.route == route }.let { if (it >= 0) it else DRILL_DOWN_ORDER }
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.movingForward(): Boolean =
+    routeOrder(targetState.destination.route) >= routeOrder(initialState.destination.route)
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.slideEnter() =
+    slideInHorizontally(tween(300)) { width -> if (movingForward()) width else -width }
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.slideExit() =
+    slideOutHorizontally(tween(300)) { width -> if (movingForward()) -width else width }
 
 @Composable
 fun RemindersApp(deepLinkListId: Long? = null) {
+    val app = LocalContext.current.applicationContext as RemindersApplication
+    // Read the start page once, at launch — it decides where the graph begins, which is fixed for
+    // the life of this composition. Changing the setting affects the next launch, not this one.
+    var startRoute by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        val stored = app.settingsRepository.startPageRoute.first()
+        startRoute = Destination.entries.firstOrNull { it.route == stored }?.route ?: Destination.Lists.route
+    }
+    // Blank until the stored page is known — a DataStore read away, so a frame or two at most.
+    val resolvedStart = startRoute ?: run {
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+        return
+    }
+
     val navController = rememberNavController()
     // Re-tapping the active tab resets it to today. A tick per tab rather than one shared counter,
     // so resetting Day doesn't also throw away Week's restored scroll position.
@@ -75,37 +109,16 @@ fun RemindersApp(deepLinkListId: Long? = null) {
     ) {
         NavHost(
             navController = navController,
-            startDestination = Destination.Lists.route,
+            startDestination = resolvedStart,
             modifier = Modifier.fillMaxSize().statusBarsPadding(),
-            // Mockup switches screens instantly (only sheets/toggles animate) —
-            // override Navigation Compose's built-in 700ms crossfade default.
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None },
+            // One directional slide for every move — see slideEnter/slideExit. Deliberately departs
+            // from the mockup's instant tab switch, on request.
+            enterTransition = { slideEnter() },
+            exitTransition = { slideExit() },
+            popEnterTransition = { slideEnter() },
+            popExitTransition = { slideExit() },
         ) {
-            composable(
-                Destination.Lists.route,
-                // Lists participates in two different transitions: an
-                // instant tab switch (Day/Week/Settings) and a push into the
-                // list detail route. Only the latter should slide, so pick
-                // the animation based on which destination is on the other
-                // end of the transition.
-                exitTransition = {
-                    if (targetState.destination.route in DETAIL_ROUTES) {
-                        slideOutHorizontally(tween(300)) { -it }
-                    } else {
-                        ExitTransition.None
-                    }
-                },
-                popEnterTransition = {
-                    if (initialState.destination.route in DETAIL_ROUTES) {
-                        slideInHorizontally(tween(300)) { -it }
-                    } else {
-                        EnterTransition.None
-                    }
-                },
-            ) {
+            composable(Destination.Lists.route) {
                 ListsScreen(
                     onOpenList = { listId -> navController.navigate(listDetailRoute(listId)) },
                     onOpenSmartList = { smartList -> navController.navigate(smartListRoute(smartList)) },
@@ -116,10 +129,6 @@ fun RemindersApp(deepLinkListId: Long? = null) {
             composable(
                 route = SMART_LIST_ROUTE,
                 arguments = listOf(navArgument("smartList") { type = NavType.StringType }),
-                enterTransition = { slideInHorizontally(tween(300)) { it } },
-                exitTransition = { slideOutHorizontally(tween(300)) { -it } },
-                popEnterTransition = { slideInHorizontally(tween(300)) { -it } },
-                popExitTransition = { slideOutHorizontally(tween(300)) { it } },
             ) { entry ->
                 val name = entry.arguments?.getString("smartList") ?: return@composable
                 SmartListScreen(
@@ -136,13 +145,6 @@ fun RemindersApp(deepLinkListId: Long? = null) {
             composable(
                 route = LIST_DETAIL_ROUTE,
                 arguments = listOf(navArgument("listId") { type = NavType.LongType }),
-                // Drill-down (list → its detail) is hierarchical, unlike the
-                // bottom-tab switches above, so it gets the standard Android
-                // push: new screen slides in from the right, pop reverses it.
-                enterTransition = { slideInHorizontally(tween(300)) { it } },
-                exitTransition = { slideOutHorizontally(tween(300)) { -it } },
-                popEnterTransition = { slideInHorizontally(tween(300)) { -it } },
-                popExitTransition = { slideOutHorizontally(tween(300)) { it } },
             ) { entry ->
                 val listId = entry.arguments?.getLong("listId") ?: return@composable
                 TaskListDetailScreen(listId = listId, onBack = { navController.popBackStack() })

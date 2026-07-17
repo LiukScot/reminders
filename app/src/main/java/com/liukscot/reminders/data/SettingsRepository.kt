@@ -14,8 +14,14 @@ class SettingsRepository(private val context: Context) {
     private val defaultListIdKey = longPreferencesKey("default_list_id")
     private val aiProviderKey = stringPreferencesKey("ai_provider")
     private val quickSnoozeMinutesKey = longPreferencesKey("quick_snooze_minutes")
+    private val startPageKey = stringPreferencesKey("start_page")
 
     val defaultListId: Flow<Long?> = context.settingsDataStore.data.map { it[defaultListIdKey] }
+
+    // The tab the app opens on, as its nav route. Stored as a plain string so this layer stays
+    // clear of the UI's Destination enum; the UI validates it against the real tabs. Default: Lists.
+    val startPageRoute: Flow<String> =
+        context.settingsDataStore.data.map { it[startPageKey] ?: DEFAULT_START_PAGE_ROUTE }
 
     val aiProvider: Flow<AiProvider> = context.settingsDataStore.data.map { AiProvider.fromKey(it[aiProviderKey]) }
 
@@ -35,6 +41,11 @@ class SettingsRepository(private val context: Context) {
     suspend fun setQuickSnoozeMinutes(minutes: Long) {
         context.settingsDataStore.edit { it[quickSnoozeMinutesKey] = minutes }
     }
+
+    suspend fun setStartPageRoute(route: String) {
+        context.settingsDataStore.edit { it[startPageKey] = route }
+    }
 }
 
 const val DEFAULT_QUICK_SNOOZE_MINUTES = 60L
+const val DEFAULT_START_PAGE_ROUTE = "lists"
