@@ -61,7 +61,7 @@ import java.util.Locale
 
 // Stock-Android FAB stack: rounded-square buttons in a vertical column, "+" on top, voice mic at
 // the bottom where the thumb lands.
-private val FabShape = RoundedCornerShape(20.dp)
+private val FabShape = RoundedCornerShape(16.dp)
 private val FabSize = 64.dp
 
 @Composable

@@ -16,8 +16,9 @@ object Dimens {
 
     val screenEdge = 18.dp
 
-    // Radii
-    val radiusMd = 14.dp
+    // Radii. radiusMd is the card/row corner: 12dp, deliberately tighter than the design system's
+    // radius-md (14px) to read closer to stock Material 3 — a chosen deviation, not drift.
+    val radiusMd = 12.dp
     val radiusXl = 24.dp
 
     // Components

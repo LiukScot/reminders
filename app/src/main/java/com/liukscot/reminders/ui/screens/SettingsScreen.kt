@@ -113,7 +113,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             icon = R.drawable.ic_list_checks,
             title = "Default list",
             value = state.defaultListName ?: "None",
-            shape = groupedRowShape(0, 2, bigRadius = 14.dp, smallRadius = 4.dp),
+            shape = groupedRowShape(0, 2, bigRadius = 12.dp, smallRadius = 4.dp),
             onClick = { pickerOpen = true },
         )
         Spacer(modifier = Modifier.height(2.dp))
@@ -121,7 +121,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             icon = R.drawable.ic_calendar,
             title = "Starting page",
             value = startPageDestination(state.startPageRoute).label,
-            shape = groupedRowShape(1, 2, bigRadius = 14.dp, smallRadius = 4.dp),
+            shape = groupedRowShape(1, 2, bigRadius = 12.dp, smallRadius = 4.dp),
             onClick = { startPagePickerOpen = true },
         )
 
@@ -138,7 +138,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             icon = R.drawable.ic_database,
             title = "Export to file",
             subtitle = "All lists, tasks and tags",
-            shape = groupedRowShape(0, 2, bigRadius = 14.dp, smallRadius = 4.dp),
+            shape = groupedRowShape(0, 2, bigRadius = 12.dp, smallRadius = 4.dp),
             onClick = { exportLauncher.launch(defaultBackupFileName()) },
         )
         Spacer(modifier = Modifier.height(2.dp))
@@ -146,7 +146,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             icon = R.drawable.ic_download,
             title = "Restore from file",
             subtitle = "Replaces everything on this device",
-            shape = groupedRowShape(1, 2, bigRadius = 14.dp, smallRadius = 4.dp),
+            shape = groupedRowShape(1, 2, bigRadius = 12.dp, smallRadius = 4.dp),
             onClick = { restoreLauncher.launch(BACKUP_PICKER_MIME_TYPES) },
         )
 
@@ -163,7 +163,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             icon = R.drawable.ic_sparkles,
             title = "AI model",
             value = state.aiProvider.displayName,
-            shape = groupedRowShape(0, 2, bigRadius = 14.dp, smallRadius = 4.dp),
+            shape = groupedRowShape(0, 2, bigRadius = 12.dp, smallRadius = 4.dp),
             onClick = { providerPickerOpen = true },
         )
         // 2dp hairline between grouped rows, matching the "My Lists" rows so the group reads as one.
@@ -172,7 +172,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             icon = R.drawable.ic_key,
             title = "${state.aiProvider.displayName} API key",
             value = state.apiKeyHint ?: "Not set",
-            shape = groupedRowShape(1, 2, bigRadius = 14.dp, smallRadius = 4.dp),
+            shape = groupedRowShape(1, 2, bigRadius = 12.dp, smallRadius = 4.dp),
             onClick = { keyDialogOpen = true },
         )
 
@@ -190,7 +190,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             title = "Quick snooze",
             subtitle = "The notification's one-tap snooze button",
             value = quickSnoozeLabel(state.quickSnoozeMinutes),
-            shape = groupedRowShape(0, 1, bigRadius = 14.dp, smallRadius = 4.dp),
+            shape = groupedRowShape(0, 1, bigRadius = 12.dp, smallRadius = 4.dp),
             onClick = { snoozePickerOpen = true },
         )
     }

@@ -53,7 +53,7 @@ fun SnoozeScreen(
                 SnoozeRow(
                     label = choice.label(),
                     time = choice.timeLabel(now),
-                    shape = groupedRowShape(index, choices.size, bigRadius = 14.dp, smallRadius = 4.dp),
+                    shape = groupedRowShape(index, choices.size, bigRadius = 12.dp, smallRadius = 4.dp),
                     onClick = { onPick(choice) },
                 )
             }

@@ -94,7 +94,7 @@ fun SmartListScreen(
 
         LazyColumn(contentPadding = PaddingValues(bottom = 96.dp)) {
             itemsIndexed(state.tasks, key = { _, group -> group.task.id }) { index, group ->
-                val shape = groupedRowShape(index, state.tasks.size, bigRadius = 14.dp, smallRadius = 4.dp)
+                val shape = groupedRowShape(index, state.tasks.size, bigRadius = 12.dp, smallRadius = 4.dp)
                 SwipeableTaskRow(
                     onComplete = { viewModel.toggleComplete(group.task) },
                     onDeleteRequest = { deleting = group.task },

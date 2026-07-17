@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.liukscot.reminders.ui.theme.Dimens
 import com.liukscot.reminders.R
 import com.liukscot.reminders.ui.theme.MonoFontFamily
 import java.time.DayOfWeek
@@ -105,7 +106,7 @@ fun DueDateSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 6.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(Dimens.radiusMd))
                     .padding(12.dp),
             ) {
                 Row(
@@ -258,7 +259,7 @@ fun DueTimeSection(
                     .fillMaxWidth()
                     .padding(top = 6.dp)
                     .height(wheelHeight)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp)),
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(Dimens.radiusMd)),
             ) {
                 val itemWidth = 64.dp
                 val sidePadding = (maxWidth - itemWidth) / 2
