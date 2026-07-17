@@ -162,6 +162,58 @@ class RemindersDatabaseTest {
     }
 
     @Test
+    fun snoozeTask_movesDueDateButNotTheRecurrenceAnchor() = runTest {
+        val repository = RemindersRepository(db)
+        val listId = db.taskListDao().insert(TaskList(name = "Personal"))
+        val anchor = 1_752_000_000_000L
+        val id = repository.addTask(
+            Task(
+                listId = listId,
+                title = "Weekly review",
+                dueAt = anchor,
+                hasDueTime = true,
+                createdAt = 0,
+                recurrenceFreq = "WEEKLY",
+                recurrenceInterval = 1,
+                recurrenceAnchor = anchor,
+            ),
+        )
+
+        val snoozedTo = anchor + 3_600_000L
+        val snoozed = repository.snoozeTask(id, snoozedTo)!!
+
+        // The occurrence moves; the cadence stays anchored where it was, so "every week" keeps
+        // ticking from the original point rather than drifting an hour each snooze.
+        assertEquals(snoozedTo, snoozed.dueAt)
+        assertEquals(anchor, snoozed.recurrenceAnchor)
+    }
+
+    @Test
+    fun completeById_advancesARecurringTaskInsteadOfClosingIt() = runTest {
+        val repository = RemindersRepository(db)
+        val listId = db.taskListDao().insert(TaskList(name = "Personal"))
+        val anchor = 1_752_000_000_000L
+        val id = repository.addTask(
+            Task(
+                listId = listId,
+                title = "Daily standup",
+                dueAt = anchor,
+                hasDueTime = true,
+                createdAt = 0,
+                recurrenceFreq = "DAILY",
+                recurrenceInterval = 1,
+                recurrenceAnchor = anchor,
+            ),
+        )
+
+        val completed = repository.completeById(id)!!
+
+        // A recurring task never simply closes: it reopens on its next occurrence, one day on.
+        assertEquals(false, completed.completed)
+        assertEquals(anchor + 86_400_000L, completed.dueAt)
+    }
+
+    @Test
     fun tasksDueBetween_returnsOnlyTasksForTheSelectedDay() = runTest {
         val listId = db.taskListDao().insert(TaskList(name = "Personal"))
         val startOfDay = 1_752_364_800_000L

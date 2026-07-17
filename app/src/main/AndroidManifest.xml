@@ -34,6 +34,14 @@
             android:showWhenLocked="true"
             android:theme="@style/Theme.Reminders" />
 
+        <activity
+            android:name=".SnoozeActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:showWhenLocked="true"
+            android:theme="@style/Theme.Reminders.Transparent" />
+
         <service
             android:name=".VoiceTileService"
             android:exported="true"
@@ -47,6 +55,10 @@
 
         <receiver
             android:name=".notifications.ReminderAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".notifications.ReminderActionReceiver"
             android:exported="false" />
 
         <receiver

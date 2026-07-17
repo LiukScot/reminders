@@ -12,6 +12,7 @@ import com.liukscot.reminders.RemindersApplication
 import com.liukscot.reminders.data.AiProvider
 import com.liukscot.reminders.data.RemindersRepository
 import com.liukscot.reminders.data.SecureKeyStore
+import com.liukscot.reminders.data.DEFAULT_QUICK_SNOOZE_MINUTES
 import com.liukscot.reminders.data.SettingsRepository
 import com.liukscot.reminders.data.TaskList
 import com.liukscot.reminders.data.encodeBackup
@@ -33,9 +34,16 @@ data class SettingsUiState(
     val defaultListId: Long? = null,
     val aiProvider: AiProvider = AiProvider.DEFAULT,
     val apiKeyHint: String? = null,
+    val quickSnoozeMinutes: Long = DEFAULT_QUICK_SNOOZE_MINUTES,
 ) {
     val defaultListName: String? get() = lists.firstOrNull { it.id == defaultListId }?.name
 }
+
+// The choices behind the notification's one-tap snooze — a short menu, not a free number field.
+val QUICK_SNOOZE_CHOICES = listOf(10L, 15L, 30L, 60L, 120L)
+
+fun quickSnoozeLabel(minutes: Long): String =
+    if (minutes < 60) "$minutes min" else "${minutes / 60} h"
 
 private const val TAG = "SettingsViewModel"
 
@@ -71,8 +79,9 @@ class SettingsViewModel(
         settingsRepository.defaultListId,
         settingsRepository.aiProvider,
         apiKeyHint,
-    ) { lists, defaultListId, aiProvider, hint ->
-        SettingsUiState(lists, defaultListId, aiProvider, hint)
+        settingsRepository.quickSnoozeMinutes,
+    ) { lists, defaultListId, aiProvider, hint, quickSnooze ->
+        SettingsUiState(lists, defaultListId, aiProvider, hint, quickSnooze)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -85,6 +94,10 @@ class SettingsViewModel(
 
     fun setAiProvider(provider: AiProvider) {
         viewModelScope.launch { settingsRepository.setAiProvider(provider) }
+    }
+
+    fun setQuickSnoozeMinutes(minutes: Long) {
+        viewModelScope.launch { settingsRepository.setQuickSnoozeMinutes(minutes) }
     }
 
     fun setApiKey(key: String) {

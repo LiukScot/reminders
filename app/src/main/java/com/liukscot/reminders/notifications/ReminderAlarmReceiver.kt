@@ -54,8 +54,43 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            // The three action slots Android allows, in order of how often they're reached for.
+            .addAction(0, "Done", actionPendingIntent(context, taskId, ACTION_COMPLETE))
+            .addAction(0, "Snooze", actionPendingIntent(context, taskId, ACTION_QUICK_SNOOZE))
+            .addAction(0, "Snooze…", snoozePickerPendingIntent(context, taskId, title))
             .build()
 
         context.getSystemService(NotificationManager::class.java).notify(taskId.toInt(), notification)
     }
+}
+
+// Silent actions (Done, quick Snooze) fire the broadcast receiver. Request code mixes task id and
+// action so a task's Done and Snooze buttons don't collide on the same PendingIntent.
+private fun actionPendingIntent(context: Context, taskId: Long, action: String): PendingIntent {
+    val intent = Intent(context, ReminderActionReceiver::class.java).apply {
+        this.action = action
+        putExtra(EXTRA_TASK_ID, taskId)
+    }
+    return PendingIntent.getBroadcast(
+        context,
+        (taskId.toInt() * 31) + action.hashCode(),
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+}
+
+// "Snooze…" opens a screen, so it goes straight to the activity — a receiver that then started it
+// would be an illegal trampoline on Android 12+.
+private fun snoozePickerPendingIntent(context: Context, taskId: Long, title: String): PendingIntent {
+    val intent = Intent(context, com.liukscot.reminders.SnoozeActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        putExtra(EXTRA_TASK_ID, taskId)
+        putExtra(EXTRA_TASK_TITLE, title)
+    }
+    return PendingIntent.getActivity(
+        context,
+        taskId.toInt(),
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 }

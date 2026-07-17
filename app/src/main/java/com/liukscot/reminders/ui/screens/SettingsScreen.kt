@@ -61,6 +61,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
     var pickerOpen by remember { mutableStateOf(false) }
     var providerPickerOpen by remember { mutableStateOf(false) }
     var keyDialogOpen by remember { mutableStateOf(false) }
+    var snoozePickerOpen by remember { mutableStateOf(false) }
     var restoreUri by remember { mutableStateOf<Uri?>(null) }
 
     val message by viewModel.message.collectAsState()
@@ -164,6 +165,24 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             shape = groupedRowShape(1, 2, bigRadius = 14.dp, smallRadius = 4.dp),
             onClick = { keyDialogOpen = true },
         )
+
+        Spacer(modifier = Modifier.height(22.dp))
+        Text(
+            text = "NOTIFICATIONS",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.3.sp,
+            color = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        SettingsRow(
+            icon = R.drawable.ic_clock,
+            title = "Quick snooze",
+            subtitle = "The notification's one-tap snooze button",
+            value = quickSnoozeLabel(state.quickSnoozeMinutes),
+            shape = groupedRowShape(0, 1, bigRadius = 14.dp, smallRadius = 4.dp),
+            onClick = { snoozePickerOpen = true },
+        )
     }
 
     if (pickerOpen) {
@@ -186,6 +205,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             providerName = state.aiProvider.displayName,
             onDismiss = { keyDialogOpen = false },
             onSave = { key -> viewModel.setApiKey(key); keyDialogOpen = false },
+        )
+    }
+    if (snoozePickerOpen) {
+        QuickSnoozePickerDialog(
+            selected = state.quickSnoozeMinutes,
+            onDismiss = { snoozePickerOpen = false },
+            onSelect = { minutes -> viewModel.setQuickSnoozeMinutes(minutes); snoozePickerOpen = false },
         )
     }
     // Restoring drops every reminder currently on the device, and there is no undo — so it asks.
@@ -246,6 +272,47 @@ private fun AiProviderPickerDialog(
                             Spacer(modifier = Modifier.size(18.dp))
                         }
                         Text(text = provider.displayName, color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+@Composable
+private fun QuickSnoozePickerDialog(
+    selected: Long,
+    onDismiss: () -> Unit,
+    onSelect: (Long) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Quick snooze") },
+        text = {
+            Column {
+                QUICK_SNOOZE_CHOICES.forEach { minutes ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(minutes) }
+                            .padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (minutes == selected) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_check),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.size(18.dp))
+                        }
+                        Text(text = quickSnoozeLabel(minutes), color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
