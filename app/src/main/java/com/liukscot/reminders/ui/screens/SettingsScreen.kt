@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.liukscot.reminders.R
 import com.liukscot.reminders.data.AiProvider
+import com.liukscot.reminders.ui.navigation.Destination
 import com.liukscot.reminders.ui.theme.MonoFontFamily
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -62,6 +63,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
     var providerPickerOpen by remember { mutableStateOf(false) }
     var keyDialogOpen by remember { mutableStateOf(false) }
     var snoozePickerOpen by remember { mutableStateOf(false) }
+    var startPagePickerOpen by remember { mutableStateOf(false) }
     var restoreUri by remember { mutableStateOf<Uri?>(null) }
 
     val message by viewModel.message.collectAsState()
@@ -111,8 +113,16 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             icon = R.drawable.ic_list_checks,
             title = "Default list",
             value = state.defaultListName ?: "None",
-            shape = groupedRowShape(0, 1, bigRadius = 14.dp, smallRadius = 4.dp),
+            shape = groupedRowShape(0, 2, bigRadius = 14.dp, smallRadius = 4.dp),
             onClick = { pickerOpen = true },
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        SettingsRow(
+            icon = R.drawable.ic_calendar,
+            title = "Starting page",
+            value = startPageDestination(state.startPageRoute).label,
+            shape = groupedRowShape(1, 2, bigRadius = 14.dp, smallRadius = 4.dp),
+            onClick = { startPagePickerOpen = true },
         )
 
         Spacer(modifier = Modifier.height(22.dp))
@@ -214,6 +224,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = rememberSettingsViewModel()) {
             onSelect = { minutes -> viewModel.setQuickSnoozeMinutes(minutes); snoozePickerOpen = false },
         )
     }
+    if (startPagePickerOpen) {
+        StartPagePickerDialog(
+            selectedRoute = state.startPageRoute,
+            onDismiss = { startPagePickerOpen = false },
+            onSelect = { route -> viewModel.setStartPage(route); startPagePickerOpen = false },
+        )
+    }
     // Restoring drops every reminder currently on the device, and there is no undo — so it asks.
     restoreUri?.let { uri ->
         AlertDialog(
@@ -272,6 +289,52 @@ private fun AiProviderPickerDialog(
                             Spacer(modifier = Modifier.size(18.dp))
                         }
                         Text(text = provider.displayName, color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+// The stored route is validated against the real tabs; an unknown one falls back to Lists so the
+// row never shows a blank.
+private fun startPageDestination(route: String): Destination =
+    Destination.entries.firstOrNull { it.route == route } ?: Destination.Lists
+
+@Composable
+private fun StartPagePickerDialog(
+    selectedRoute: String,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Starting page") },
+        text = {
+            Column {
+                Destination.entries.forEach { destination ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(destination.route) }
+                            .padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (destination.route == selectedRoute) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_check),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.size(18.dp))
+                        }
+                        Text(text = destination.label, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }

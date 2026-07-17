@@ -13,6 +13,7 @@ import com.liukscot.reminders.data.AiProvider
 import com.liukscot.reminders.data.RemindersRepository
 import com.liukscot.reminders.data.SecureKeyStore
 import com.liukscot.reminders.data.DEFAULT_QUICK_SNOOZE_MINUTES
+import com.liukscot.reminders.data.DEFAULT_START_PAGE_ROUTE
 import com.liukscot.reminders.data.SettingsRepository
 import com.liukscot.reminders.data.TaskList
 import com.liukscot.reminders.data.encodeBackup
@@ -35,6 +36,7 @@ data class SettingsUiState(
     val aiProvider: AiProvider = AiProvider.DEFAULT,
     val apiKeyHint: String? = null,
     val quickSnoozeMinutes: Long = DEFAULT_QUICK_SNOOZE_MINUTES,
+    val startPageRoute: String = DEFAULT_START_PAGE_ROUTE,
 ) {
     val defaultListName: String? get() = lists.firstOrNull { it.id == defaultListId }?.name
 }
@@ -44,6 +46,13 @@ val QUICK_SNOOZE_CHOICES = listOf(10L, 15L, 30L, 60L, 120L)
 
 fun quickSnoozeLabel(minutes: Long): String =
     if (minutes < 60) "$minutes min" else "${minutes / 60} h"
+
+private data class Prefs(
+    val aiProvider: AiProvider,
+    val apiKeyHint: String?,
+    val quickSnoozeMinutes: Long,
+    val startPageRoute: String,
+)
 
 private const val TAG = "SettingsViewModel"
 
@@ -74,14 +83,21 @@ class SettingsViewModel(
         }
     }
 
-    val uiState: StateFlow<SettingsUiState> = combine(
-        repository.lists,
-        settingsRepository.defaultListId,
+    // Grouped because Kotlin's typed combine tops out at five flows; the settings scalars fold into
+    // one so the outer combine stays within that.
+    private val prefs = combine(
         settingsRepository.aiProvider,
         apiKeyHint,
         settingsRepository.quickSnoozeMinutes,
-    ) { lists, defaultListId, aiProvider, hint, quickSnooze ->
-        SettingsUiState(lists, defaultListId, aiProvider, hint, quickSnooze)
+        settingsRepository.startPageRoute,
+    ) { aiProvider, hint, quickSnooze, startPage -> Prefs(aiProvider, hint, quickSnooze, startPage) }
+
+    val uiState: StateFlow<SettingsUiState> = combine(
+        repository.lists,
+        settingsRepository.defaultListId,
+        prefs,
+    ) { lists, defaultListId, p ->
+        SettingsUiState(lists, defaultListId, p.aiProvider, p.apiKeyHint, p.quickSnoozeMinutes, p.startPageRoute)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -98,6 +114,10 @@ class SettingsViewModel(
 
     fun setQuickSnoozeMinutes(minutes: Long) {
         viewModelScope.launch { settingsRepository.setQuickSnoozeMinutes(minutes) }
+    }
+
+    fun setStartPage(route: String) {
+        viewModelScope.launch { settingsRepository.setStartPageRoute(route) }
     }
 
     fun setApiKey(key: String) {
