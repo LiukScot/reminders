@@ -1,7 +1,6 @@
 package com.liukscot.reminders.ui.screens
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -13,12 +12,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -36,12 +33,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -59,8 +54,6 @@ import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
-// Fixed so the today-centering scroll can offset by exactly one header.
-private val MonthHeaderHeight = 50.dp
 
 @Composable
 fun WeekScreen(resetToTodayTick: Int = 0, viewModel: WeekViewModel = rememberWeekViewModel()) {
@@ -107,47 +100,33 @@ fun WeekScreen(resetToTodayTick: Int = 0, viewModel: WeekViewModel = rememberWee
     val entries = remember(state.days) { buildWeekEntries(state.days) }
     val todayIndex = remember(entries) { entries.indexOfFirst { it is WeekEntry.DayRow && it.day.date == today } }
     val listState = rememberLazyListState()
-    val titleAlpha by animateFloatAsState(
-        if (listState.isScrollInProgress) 0f else 1f,
-        label = "weekTitleAlpha",
-    )
-    // The month header floats over the list, so landing today's row at the viewport top would park
-    // it under the header — start it one header lower instead.
-    val headerOffset = with(LocalDensity.current) { MonthHeaderHeight.roundToPx() }
     var hasCenteredOnToday by remember { mutableStateOf(false) }
     LaunchedEffect(todayIndex) {
         if (!hasCenteredOnToday && todayIndex >= 0) {
-            listState.scrollToItem(todayIndex, -headerOffset)
+            listState.scrollToItem(todayIndex)
             hasCenteredOnToday = true
         }
     }
     LaunchedEffect(resetToTodayTick) {
         if (resetToTodayTick > 0 && todayIndex >= 0) {
-            listState.animateScrollToItem(todayIndex, -headerOffset)
+            listState.animateScrollToItem(todayIndex)
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalViewConfiguration provides fastDragViewConfiguration) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = Dimens.screenEdge, top = 10.dp, end = Dimens.screenEdge, bottom = 165.dp),
-            ) {
-                entries.forEach { entry ->
-                    // The month title pins to the top so at rest there is always a visible title,
-                    // and fades out while scrolling so it never covers the rows passing under it.
-                    if (entry is WeekEntry.MonthHeader) {
-                        stickyHeader(key = entry.key) {
-                            MonthHeaderText(entry.date, modifier = Modifier.alpha(titleAlpha))
-                        }
-                        return@forEach
-                    }
-                    item(key = entry.key) {
-                        when (entry) {
-                            is WeekEntry.MonthHeader -> Unit
-                            is WeekEntry.WeekLabel -> WeekLabelText(entry.mondayDate, today)
-                            is WeekEntry.DayRow -> WeekDayRow(
+        Column(modifier = Modifier.fillMaxSize()) {
+            WeekHeader(today)
+            CompositionLocalProvider(LocalViewConfiguration provides fastDragViewConfiguration) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = Dimens.screenEdge, end = Dimens.screenEdge, bottom = 165.dp),
+                ) {
+                    entries.forEach { entry ->
+                        item(key = entry.key) {
+                            when (entry) {
+                                is WeekEntry.WeekLabel -> WeekLabelText(entry.mondayDate, today)
+                                is WeekEntry.DayRow -> WeekDayRow(
                                 day = entry.day,
                                 isToday = entry.day.date == today,
                                 isDropTarget = entry.day.date == dropTargetDay,
@@ -164,6 +143,7 @@ fun WeekScreen(resetToTodayTick: Int = 0, viewModel: WeekViewModel = rememberWee
                                 onEditTask = { task -> sheetTarget = ReminderSheetTarget.Edit(task, state.tagsByTaskId[task.id].orEmpty()) },
                                 onDeleteRequest = { task -> deleting = task },
                             )
+                            }
                         }
                     }
                 }
@@ -226,10 +206,6 @@ fun WeekScreen(resetToTodayTick: Int = 0, viewModel: WeekViewModel = rememberWee
 private sealed interface WeekEntry {
     val key: String
 
-    data class MonthHeader(val date: LocalDate) : WeekEntry {
-        override val key get() = "month-${date.year}-${date.monthValue}"
-    }
-
     data class WeekLabel(val mondayDate: LocalDate) : WeekEntry {
         override val key get() = "week-$mondayDate"
     }
@@ -242,12 +218,10 @@ private sealed interface WeekEntry {
 private fun buildWeekEntries(days: List<WeekDay>): List<WeekEntry> {
     val entries = mutableListOf<WeekEntry>()
     days.forEachIndexed { index, day ->
-        val previousDate = days.getOrNull(index - 1)?.date
-        val isNewMonth = previousDate == null || previousDate.month != day.date.month || previousDate.year != day.date.year
-        val isNewWeek = !isNewMonth && day.date.dayOfWeek == DayOfWeek.MONDAY
-        when {
-            isNewMonth -> entries += WeekEntry.MonthHeader(day.date)
-            isNewWeek -> entries += WeekEntry.WeekLabel(day.date)
+        // A label marks each week boundary (Monday); the fixed screen header carries the month, so
+        // there are no per-month headers scrolling through the list any more.
+        if (index > 0 && day.date.dayOfWeek == DayOfWeek.MONDAY) {
+            entries += WeekEntry.WeekLabel(day.date)
         }
         entries += WeekEntry.DayRow(day)
     }
@@ -333,21 +307,28 @@ private fun WeekDayRow(
     }
 }
 
+// Fixed header, mirroring the Day screen's: a constant "This Week" title with the current month
+// underneath — replacing the per-month sticky headers, whose fade-and-vanish while scrolling was
+// what read as broken.
 @Composable
-private fun MonthHeaderText(date: LocalDate, modifier: Modifier = Modifier) {
-    Text(
-        date.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)),
-        fontSize = 22.sp,
-        fontWeight = FontWeight.ExtraBold,
-        letterSpacing = (-0.3).sp,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(MonthHeaderHeight)
-            .background(MaterialTheme.colorScheme.background)
-            .wrapContentHeight(Alignment.Bottom)
-            .padding(bottom = Dimens.sp2),
-    )
+private fun WeekHeader(today: LocalDate) {
+    Column(modifier = Modifier.padding(horizontal = Dimens.screenEdge)) {
+        Text(
+            text = "This Week",
+            fontSize = 30.sp,
+            lineHeight = 36.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = (-0.5).sp,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = Dimens.sp2, bottom = 2.dp),
+        )
+        Text(
+            text = today.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)),
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = Dimens.radiusMd),
+        )
+    }
 }
 
 @Composable
