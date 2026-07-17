@@ -102,7 +102,7 @@ fun SearchScreen(onBack: () -> Unit, viewModel: SearchViewModel = rememberSearch
 
         LazyColumn(contentPadding = PaddingValues(bottom = 96.dp)) {
             state.groups.forEach { group ->
-                item(key = "header-${group.listName}") { GroupHeader(group.listName) }
+                item(key = "header-${group.listId}") { GroupHeader(group.listName) }
                 itemsIndexed(group.tasks, key = { _, task -> task.id }) { index, task ->
                     val shape = groupedRowShape(index, group.tasks.size, bigRadius = Dimens.radiusMd, smallRadius = 4.dp)
                     SwipeableTaskRow(

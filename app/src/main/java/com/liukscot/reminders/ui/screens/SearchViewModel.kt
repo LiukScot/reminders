@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class SearchGroup(val listName: String, val tasks: List<Task>)
+data class SearchGroup(val listId: Long, val listName: String, val tasks: List<Task>)
 
 data class SearchUiState(
     val query: String = "",
@@ -46,7 +46,7 @@ class SearchViewModel(
             val groups = lists.mapNotNull { list ->
                 tasks.filter { it.listId == list.id }
                     .takeIf { it.isNotEmpty() }
-                    ?.let { SearchGroup(list.name, it) }
+                    ?.let { SearchGroup(list.id, list.name, it) }
             }
             SearchUiState(raw, groups, lists, tagsByTaskId)
         }

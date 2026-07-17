@@ -114,14 +114,14 @@ fun DueDateSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CalNavButton(R.drawable.ic_chevron_left) { onMonthChange(displayedMonth.minusMonths(1)) }
+                    CalNavButton(R.drawable.ic_chevron_left, "Previous month") { onMonthChange(displayedMonth.minusMonths(1)) }
                     Text(
                         text = "${displayedMonth.month.getDisplayName(JavaTextStyle.FULL, Locale.ENGLISH)} ${displayedMonth.year}",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    CalNavButton(R.drawable.ic_chevron_right) { onMonthChange(displayedMonth.plusMonths(1)) }
+                    CalNavButton(R.drawable.ic_chevron_right, "Next month") { onMonthChange(displayedMonth.plusMonths(1)) }
                 }
                 Row(modifier = Modifier.fillMaxWidth()) {
                     DayOfWeek.entries.forEach { day ->
@@ -186,7 +186,7 @@ fun DueDateSection(
 }
 
 @Composable
-private fun CalNavButton(icon: Int, onClick: () -> Unit) {
+private fun CalNavButton(icon: Int, contentDescription: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(30.dp)
@@ -196,7 +196,7 @@ private fun CalNavButton(icon: Int, onClick: () -> Unit) {
     ) {
         Icon(
             painter = painterResource(icon),
-            contentDescription = null,
+            contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(16.dp),
         )
