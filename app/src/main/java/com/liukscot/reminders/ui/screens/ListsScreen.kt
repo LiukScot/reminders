@@ -130,7 +130,7 @@ fun ListsScreen(
                 itemsIndexed(state.lists, key = { _, entry -> entry.list.id }) { index, entry ->
                     ListRow(
                         entry = entry,
-                        shape = groupedRowShape(index, state.lists.size, bigRadius = 14.dp, smallRadius = 4.dp),
+                        shape = groupedRowShape(index, state.lists.size, bigRadius = 12.dp, smallRadius = 4.dp),
                         onClick = { onOpenList(entry.list.id) },
                         onLongClick = { editing = EditTarget.Rename(entry.list) },
                     )
@@ -211,7 +211,7 @@ private fun SmartListCard(
 ) {
     Column(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(14.dp),
     ) {

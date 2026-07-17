@@ -113,7 +113,7 @@ fun TaskListDetailScreen(
 
             LazyColumn(contentPadding = PaddingValues(bottom = 96.dp)) {
                 itemsIndexed(state.open, key = { _, group -> group.task.id }) { index, group ->
-                    val shape = groupedRowShape(index, state.open.size, bigRadius = 14.dp, smallRadius = 4.dp)
+                    val shape = groupedRowShape(index, state.open.size, bigRadius = 12.dp, smallRadius = 4.dp)
                     SwipeableTaskRow(
                         onComplete = { viewModel.toggleComplete(group.task) },
                         onDeleteRequest = { deleting = group.task },
@@ -141,7 +141,7 @@ fun TaskListDetailScreen(
                     }
                     if (completedExpanded) {
                         itemsIndexed(state.completed, key = { _, group -> "completed-${group.task.id}" }) { index, group ->
-                            val shape = groupedRowShape(index, state.completed.size, bigRadius = 14.dp, smallRadius = 4.dp)
+                            val shape = groupedRowShape(index, state.completed.size, bigRadius = 12.dp, smallRadius = 4.dp)
                             SwipeableTaskRow(
                                 onComplete = { viewModel.toggleComplete(group.task) },
                                 onDeleteRequest = { deleting = group.task },
