@@ -27,14 +27,27 @@ abstract class RemindersDatabase : RoomDatabase() {
                     // start once the app has installs to preserve.
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .addCallback(object : RoomDatabase.Callback() {
-                        // Fires exactly once, when the db file is first created —
-                        // seeds the default "Personal" list for a fresh install.
-                        override fun onCreate(db: SupportSQLiteDatabase) {
-                            super.onCreate(db)
-                            db.execSQL("INSERT INTO task_lists (name, icon) VALUES ('Personal', 'inbox')")
+                        // Seeding on open rather than onCreate: a destructive migration recreates
+                        // the tables empty while the db file lives on, so onCreate never fires and
+                        // the app would come back with no lists and nowhere to put a reminder.
+                        // onDestructiveMigration is no good either — it runs after the drop but
+                        // before the tables are recreated, so the insert has nothing to write to.
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            seedDefaultList(db)
                         }
                     })
                     .build().also { instance = it }
             }
+
+        // Conditional, because this runs on every open: it fills an empty table and is a no-op
+        // otherwise. Deleting the last list is not allowed anywhere in the app, so "no lists at
+        // all" only ever means a freshly created or freshly wiped schema.
+        private fun seedDefaultList(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "INSERT INTO task_lists (name, icon) " +
+                    "SELECT 'Personal', 'inbox' WHERE NOT EXISTS (SELECT 1 FROM task_lists)",
+            )
+        }
     }
 }
