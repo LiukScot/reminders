@@ -12,6 +12,13 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.liukscot.reminders.MainActivity
+import com.liukscot.reminders.RemindersApplication
+import com.liukscot.reminders.data.compactSnoozeLabel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import com.liukscot.reminders.R
 
 const val REMINDER_NOTIFICATION_CHANNEL_ID = "reminders_due"
@@ -26,6 +33,8 @@ fun createReminderNotificationChannel(context: Context) {
 }
 
 class ReminderAlarmReceiver : BroadcastReceiver() {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onReceive(context: Context, intent: Intent) {
         val taskId = intent.getLongExtra(EXTRA_TASK_ID, -1)
         val listId = intent.getLongExtra(EXTRA_LIST_ID, -1)
@@ -37,6 +46,28 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             PackageManager.PERMISSION_GRANTED
         if (!hasPermission) return
 
+        val app = context.applicationContext as RemindersApplication
+        // goAsync: the quick-snooze label reflects the current setting, read here so it matches what
+        // the button will actually do — a quick DataStore read, well inside the window it grants.
+        val pending = goAsync()
+        scope.launch {
+            try {
+                val quickMinutes = app.settingsRepository.quickSnoozeMinutes.first()
+                context.getSystemService(NotificationManager::class.java)
+                    .notify(taskId.toInt(), buildNotification(context, taskId, listId, title, quickMinutes))
+            } finally {
+                pending.finish()
+            }
+        }
+    }
+
+    private fun buildNotification(
+        context: Context,
+        taskId: Long,
+        listId: Long,
+        title: String,
+        quickMinutes: Long,
+    ): android.app.Notification {
         val openIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_LIST_ID, listId)
@@ -48,19 +79,18 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification = NotificationCompat.Builder(context, REMINDER_NOTIFICATION_CHANNEL_ID)
+        return NotificationCompat.Builder(context, REMINDER_NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_check)
             .setContentTitle(title)
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            // The three action slots Android allows, in order of how often they're reached for.
+            // The three action slots Android allows, in order of how often they're reached for. The
+            // quick snooze shows its configured delay ("Snooze 1h"); "Snooze for…" opens the picker.
             .addAction(0, "Done", actionPendingIntent(context, taskId, ACTION_COMPLETE))
-            .addAction(0, "Snooze", actionPendingIntent(context, taskId, ACTION_QUICK_SNOOZE))
-            .addAction(0, "Snooze…", snoozePickerPendingIntent(context, taskId, title))
+            .addAction(0, "Snooze ${compactSnoozeLabel(quickMinutes)}", actionPendingIntent(context, taskId, ACTION_QUICK_SNOOZE))
+            .addAction(0, "Snooze for…", snoozePickerPendingIntent(context, taskId, title))
             .build()
-
-        context.getSystemService(NotificationManager::class.java).notify(taskId.toInt(), notification)
     }
 }
 
