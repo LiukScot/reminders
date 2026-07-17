@@ -49,3 +49,7 @@ class SettingsRepository(private val context: Context) {
 
 const val DEFAULT_QUICK_SNOOZE_MINUTES = 60L
 const val DEFAULT_START_PAGE_ROUTE = "lists"
+
+// Compact form for the notification's quick-snooze button, e.g. "1h" or "10m", where space is tight.
+fun compactSnoozeLabel(minutes: Long): String =
+    if (minutes < 60) "${minutes}m" else "${minutes / 60}h"
