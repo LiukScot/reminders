@@ -7,7 +7,7 @@ import com.liukscot.reminders.R
 // (Lists/Day/Week/Settings) — icons are the mockup's Lucide glyphs.
 enum class Destination(val route: String, val label: String, @DrawableRes val icon: Int) {
     Lists(route = "lists", label = "Lists", icon = R.drawable.ic_list_checks),
-    Day(route = "day", label = "Day", icon = R.drawable.ic_sun),
-    Week(route = "week", label = "Week", icon = R.drawable.ic_calendar_range),
+    Day(route = "day", label = "Today", icon = R.drawable.ic_sun),
+    Week(route = "week", label = "This Week", icon = R.drawable.ic_calendar_range),
     Settings(route = "settings", label = "Settings", icon = R.drawable.ic_settings),
 }
