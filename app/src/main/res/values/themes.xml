@@ -1,3 +1,10 @@
 <resources>
     <style name="Theme.Reminders" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- The snooze picker floats over the notification shade rather than filling the screen. -->
+    <style name="Theme.Reminders.Transparent" parent="Theme.Reminders">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
 </resources>

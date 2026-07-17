@@ -153,6 +153,27 @@ class RemindersRepository(private val db: RemindersDatabase) {
         return updated
     }
 
+    suspend fun taskById(taskId: Long): Task? = taskDao.getById(taskId)
+
+    // "Done" from a notification always means done, so — unlike the toggle — it never re-opens a
+    // task. A recurring one still advances to its next occurrence rather than closing the series.
+    suspend fun completeById(taskId: Long): Task? {
+        val task = taskDao.getById(taskId) ?: return null
+        if (task.completed) return task
+        return toggleComplete(task)
+    }
+
+    // Snoozing reschedules the reminder to `dueAt`, keeping its time-of-day flag, and reopens it if
+    // it had been completed. The recurrence anchor is left untouched on purpose: pushing one
+    // occurrence must not shift the cadence — "every Thursday" snoozed to Friday is still Thursday's
+    // series. Same reasoning as toggleComplete, opposite direction.
+    suspend fun snoozeTask(taskId: Long, dueAt: Long): Task? {
+        val task = taskDao.getById(taskId) ?: return null
+        val updated = task.copy(dueAt = dueAt, hasDueTime = true, completed = false)
+        taskDao.update(updated)
+        return updated
+    }
+
     suspend fun deleteTask(task: Task) = taskDao.delete(task)
 
     suspend fun allTasks(): List<Task> = taskDao.getAllOnce()

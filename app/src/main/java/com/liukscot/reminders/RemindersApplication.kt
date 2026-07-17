@@ -24,6 +24,9 @@ class RemindersApplication : Application() {
     val secureKeyStore: SecureKeyStore by lazy { SecureKeyStore(this) }
     val voiceTaskParsers: VoiceTaskParsers by lazy { VoiceTaskParsers(secureKeyStore) }
 
+    suspend fun quickSnoozeMillis(): Long =
+        settingsRepository.quickSnoozeMinutes.first() * 60_000L
+
     // Lives as long as the process: the work below outlives any one screen.
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
