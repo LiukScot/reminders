@@ -28,11 +28,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.liukscot.reminders.R
 import com.liukscot.reminders.data.SmartList
+import com.liukscot.reminders.ui.ScreenFab
 import com.liukscot.reminders.data.Task
 import com.liukscot.reminders.ui.theme.MonoFontFamily
 
-// The mockup has no smart-list screen of its own, so this mirrors "List detail" minus what only a
-// real list has: no rename/delete menu, and no "New reminder" row — a filter has no list to add to.
+// The mockup has no smart-list screen of its own, so this mirrors "List detail" minus the
+// rename/delete menu, which only a real list has. Adding a reminder is still offered (via the FAB),
+// landing in the default list, since a filter has no list of its own.
 @Composable
 fun SmartListScreen(
     smartList: SmartList,
@@ -42,6 +44,11 @@ fun SmartListScreen(
     val state by viewModel.uiState.collectAsState()
     var editing by remember { mutableStateOf<TaskGroup?>(null) }
     var deleting by remember { mutableStateOf<Task?>(null) }
+    var creating by remember { mutableStateOf(false) }
+
+    // Registered here, above the early return for the empty state, so the FAB shows even when the
+    // filter has nothing in it. New reminders land in the default list — see newTaskListId.
+    ScreenFab(onAdd = { creating = true })
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         Row(
@@ -128,6 +135,21 @@ fun SmartListScreen(
             title = task.title,
             onDismiss = { deleting = null },
             onConfirm = { viewModel.deleteTask(task); deleting = null },
+        )
+    }
+
+    if (creating) {
+        ReminderSheet(
+            lists = state.lists,
+            preselectedListId = state.newTaskListId,
+            onDismiss = { creating = false },
+            onSave = { title, notes, listId, tags, flagged, priority, dueAt, hasDueTime, recFreq, recInterval, recByDay, recAnchor ->
+                viewModel.saveTask(
+                    null, title, notes, listId, tags, flagged, priority, dueAt, hasDueTime,
+                    recFreq, recInterval, recByDay, recAnchor,
+                )
+                creating = false
+            },
         )
     }
 }
