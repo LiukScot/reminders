@@ -299,10 +299,13 @@ private fun AiProviderPickerDialog(
     )
 }
 
-// The stored route is validated against the real tabs; an unknown one falls back to Lists so the
-// row never shows a blank.
+// Settings itself makes no sense as a landing page, so it is not offered.
+private val START_PAGE_CHOICES = Destination.entries.filter { it != Destination.Settings }
+
+// The stored route is validated against the offered pages; anything else falls back to Lists so
+// the row never shows a blank.
 private fun startPageDestination(route: String): Destination =
-    Destination.entries.firstOrNull { it.route == route } ?: Destination.Lists
+    START_PAGE_CHOICES.firstOrNull { it.route == route } ?: Destination.Lists
 
 @Composable
 private fun StartPagePickerDialog(
@@ -315,7 +318,7 @@ private fun StartPagePickerDialog(
         title = { Text("Starting page") },
         text = {
             Column {
-                Destination.entries.forEach { destination ->
+                START_PAGE_CHOICES.forEach { destination ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
