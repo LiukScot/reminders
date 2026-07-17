@@ -2,14 +2,25 @@ package com.liukscot.reminders.data
 
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.json.JSONException
 
 class VoiceTaskDraftTest {
+    // The bug this guards: without the current time in the prompt, "in 10 minutes" is unresolvable —
+    // the model has no "now" to add to, so it invents a time. The instruction must carry it.
+    @Test
+    fun `instruction carries the current date and time`() {
+        val instruction = voiceTaskInstruction(LocalDateTime.of(2026, 7, 17, 19, 5), listOf("Personal"))
+        assertTrue(instruction.contains("2026-07-17 19:05"))
+        assertTrue(instruction.contains("FRIDAY"))
+    }
+
     @Test
     fun `full draft with date, time and recurrence`() {
         val json = """

@@ -118,7 +118,7 @@ class VoiceCaptureViewModel(
             }
             val lists = repository.lists.first()
             _state.value = try {
-                val draft = parser.parse(transcript, LocalDate.now(), lists.map { it.name })
+                val draft = parser.parse(transcript, LocalDateTime.now(), lists.map { it.name })
                 // The AI names a list; match it (loosely) to a real one, else fall back to the default.
                 val picked = draft.list?.let { name -> lists.firstOrNull { it.name.equals(name, ignoreCase = true) } }
                 val fallback = lists.firstOrNull { it.id == settingsRepository.defaultListId.first() }
