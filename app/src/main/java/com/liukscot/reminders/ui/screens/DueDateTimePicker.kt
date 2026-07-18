@@ -136,7 +136,8 @@ fun DueDateSection(
                     }
                 }
                 val today = remember { LocalDate.now() }
-                calendarCells(displayedMonth).forEach { week ->
+                val weeks = remember(displayedMonth) { calendarCells(displayedMonth) }
+                weeks.forEach { week ->
                     Row(modifier = Modifier.fillMaxWidth()) {
                         week.forEach { day ->
                             Box(

@@ -36,6 +36,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -104,8 +105,23 @@ private fun recurrenceSummary(freq: RecurrenceFrequency, interval: Int, byDay: S
     val days = WEEKDAY_ORDER.filter { it in byDay }.joinToString(", ") { it.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH) }
     return "$cadence · $days"
 }
-private val SheetDismissDistance = 320.dp
-private val SheetDismissFlingSpeed = 10_000.dp
+
+// How far down, and how fast, a drag has to go before letting go closes the sheet.
+//
+// The two are an OR: exceeding either one closes it. That is what makes the speed value the one
+// that actually decides. A deliberate downward drag runs well past 1000.dp per second, so anything
+// near Material's stock 125.dp per second fires on every gesture and the distance never gets a
+// vote — the sheet then shuts on the smallest flick no matter how far the distance is raised.
+//
+// So the speed is set above a normal drag and only a sharp flick clears it, which leaves distance
+// as the usual decider: about a quarter of the screen. This is a form, and closing it by accident
+// throws away everything typed, so it is deliberately stiffer than a sheet you just glance at.
+//
+// Not stiffer still: an earlier 320.dp / 10_000.dp per second felt broken rather than firm. No
+// finger reaches 10_000.dp per second, so velocity could never close it at all, and a third of the
+// screen of travel was the only way out — every normal flick just rebounded.
+private val SheetDismissDistance = 160.dp
+private val SheetDismissFlingSpeed = 1800.dp
 
 @Composable
 private fun SectionLabel(text: String) {
@@ -220,6 +236,10 @@ fun ReminderSheet(
             initialValue = SheetValue.Hidden,
         )
     }
+    val contentScroll = rememberScrollState()
+    // derivedStateOf, not a raw `contentScroll.value == 0`: the raw read would recompose this whole
+    // sheet on every scrolled pixel. This only wakes it when the answer actually flips.
+    val contentAtTop by remember { derivedStateOf { contentScroll.value == 0 } }
     val fieldColors = TextFieldDefaults.colors(
         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -244,11 +264,15 @@ fun ReminderSheet(
         // and leave the content only the bottom (gesture bar) inset.
         modifier = Modifier.statusBarsPadding(),
         contentWindowInsets = { WindowInsets.navigationBars },
+        // Drag-to-dismiss only once the form is scrolled back to the top. Mid-form a downward drag
+        // is someone reading their way back up, not asking to close — handing that gesture to the
+        // sheet closed the form and lost what they had typed.
+        sheetGesturesEnabled = contentAtTop,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(contentScroll)
                 .padding(horizontal = 18.dp)
                 .padding(bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),

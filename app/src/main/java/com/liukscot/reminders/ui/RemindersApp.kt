@@ -3,8 +3,6 @@ package com.liukscot.reminders.ui
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
@@ -183,16 +181,16 @@ fun RemindersApp(deepLinkListId: Long? = null) {
             animationSpec = tween(300, easing = LinearEasing),
             label = "fabBottom",
         )
-        // On a screen with no add action (Settings, Search) the FAB folds away toward the right edge
-        // it lives on and fades, mirroring the nav bar's collapse. lastOnAdd keeps the buttons drawn
+        // On a screen with no add action (Settings, Search) the FAB folds away with the same motion
+        // as the nav bar below it — see its AnimatedVisibility. lastOnAdd keeps the buttons drawn
         // through the exit, since onAdd is already null by then.
         val fabVisible = fabState.onAdd != null
         var lastOnAdd by remember { mutableStateOf(fabState.onAdd) }
         if (fabState.onAdd != null) lastOnAdd = fabState.onAdd
         AnimatedVisibility(
             visible = fabVisible,
-            enter = expandHorizontally(tween(300), expandFrom = Alignment.End) + fadeIn(tween(300)),
-            exit = shrinkHorizontally(tween(300), shrinkTowards = Alignment.End) + fadeOut(tween(300)),
+            enter = expandVertically(tween(300), expandFrom = Alignment.CenterVertically) + fadeIn(tween(300)),
+            exit = shrinkVertically(tween(300), shrinkTowards = Alignment.CenterVertically) + fadeOut(tween(300)),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
