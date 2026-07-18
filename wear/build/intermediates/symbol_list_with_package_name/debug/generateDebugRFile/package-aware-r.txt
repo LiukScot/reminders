@@ -1,0 +1,16 @@
+com.liukscot.reminders.wear
+color ic_launcher_background
+drawable ic_bell
+drawable ic_check
+drawable ic_clock
+drawable ic_close
+drawable ic_launcher_foreground
+drawable ic_list
+drawable ic_mic
+drawable ic_mic_off
+drawable ic_retry
+mipmap ic_launcher
+string app_name
+string voice_complication_description
+string voice_complication_label
+style Theme_Reminders_Wear

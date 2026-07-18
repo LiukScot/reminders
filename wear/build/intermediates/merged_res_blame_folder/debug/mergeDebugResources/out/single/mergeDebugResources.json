@@ -1,0 +1,50 @@
+[
+    {
+        "merged": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-debug-63:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-main-65:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-debug-63:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-main-65:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-debug-63:/drawable_ic_list.xml.flat",
+        "source": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-main-65:/drawable/ic_list.xml"
+    },
+    {
+        "merged": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-debug-63:/drawable_ic_retry.xml.flat",
+        "source": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-main-65:/drawable/ic_retry.xml"
+    },
+    {
+        "merged": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-debug-63:/drawable_ic_mic.xml.flat",
+        "source": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-main-65:/drawable/ic_mic.xml"
+    },
+    {
+        "merged": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-debug-63:/drawable_ic_bell.xml.flat",
+        "source": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-main-65:/drawable/ic_bell.xml"
+    },
+    {
+        "merged": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-debug-63:/drawable_ic_clock.xml.flat",
+        "source": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-main-65:/drawable/ic_clock.xml"
+    },
+    {
+        "merged": "com.liukscot.reminders.wear-debug-63:/drawable_ic_mic_off.xml.flat",
+        "source": "com.liukscot.reminders.wear-main-65:/drawable/ic_mic_off.xml"
+    },
+    {
+        "merged": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-debug-63:/drawable_ic_close.xml.flat",
+        "source": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-main-65:/drawable/ic_close.xml"
+    },
+    {
+        "merged": "com.liukscot.reminders.wear-debug-63:/drawable_ic_mic.xml.flat",
+        "source": "com.liukscot.reminders.wear-main-65:/drawable/ic_mic.xml"
+    },
+    {
+        "merged": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-debug-63:/drawable_ic_check.xml.flat",
+        "source": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-main-65:/drawable/ic_check.xml"
+    },
+    {
+        "merged": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-debug-63:/drawable_ic_mic_off.xml.flat",
+        "source": "/home/luca/.gradle/daemon/9.4.1/com.liukscot.reminders.wear-main-65:/drawable/ic_mic_off.xml"
+    }
+]

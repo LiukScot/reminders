@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Reminders</string>
+    <string name="voice_complication_label">Speak</string>
+    <string name="voice_complication_description">Create a reminder by voice</string>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#FF6D00</color>
+    <string name="app_name">Reminders</string>
+    <string name="voice_complication_description">Create a reminder by voice</string>
+    <string name="voice_complication_label">Speak</string>
+    <style name="Theme.Reminders.Wear" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>

@@ -1,0 +1,73 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- The watch transcribes locally and hands the text to the phone, so it needs to see the
+         recognition service. Android 11+ hides other packages unless they are declared here. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Reminders.Wear">
+
+        <uses-library
+            android:name="com.google.android.wearable"
+            android:required="false" />
+
+        <!-- Declares the app is usable without a phone-side counterpart being opened first. -->
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="true" />
+
+        <!-- The launcher lands straight on voice capture: in v1 that is the whole app. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Reminders.Wear">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Opened by the Snooze action on the watch's own reminder notification. -->
+        <activity
+            android:name=".SnoozeActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:showWhenLocked="true"
+            android:theme="@style/Theme.Reminders.Wear" />
+
+        <service
+            android:name=".VoiceComplicationService"
+            android:exported="true"
+            android:label="@string/voice_complication_label"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT,MONOCHROMATIC_IMAGE,SMALL_IMAGE" />
+            <!-- Static content: the label never changes, so the system never needs to poll. -->
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="0" />
+        </service>
+
+    </application>
+
+</manifest>

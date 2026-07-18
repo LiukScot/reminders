@@ -1,0 +1,7 @@
+<resources>
+    <!-- Compose draws everything; this only keeps the pre-composition window dark so launch
+         doesn't flash white on a screen that is never light. -->
+    <style name="Theme.Reminders.Wear" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>
