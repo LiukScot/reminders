@@ -67,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import com.liukscot.reminders.R
@@ -492,8 +493,14 @@ internal fun DayTaskRow(
                 // detectors as sibling coroutines inside ONE pointerInput scope is the documented
                 // way to combine tap + long-press-drag on the same node.
                 coroutineScope {
-                    launch { detectTapGestures(onTap = { latestOnClick.value() }) }
-                    launch {
+                    // UNDISPATCHED matters: pointerInput only runs this block on the *first* pointer
+                    // event, so a plain launch() registers the detectors a dispatch too late and the
+                    // gesture that woke the node is lost — the first tap/drag on every row silently
+                    // did nothing. Starting undispatched registers them within that same event.
+                    launch(start = CoroutineStart.UNDISPATCHED) {
+                        detectTapGestures(onTap = { latestOnClick.value() })
+                    }
+                    launch(start = CoroutineStart.UNDISPATCHED) {
                         detectDragGesturesAfterLongPress(
                             onDragStart = { position ->
                                 scope.launch { dragOffset.snapTo(Offset.Zero) }
@@ -589,7 +596,19 @@ internal fun DayTaskCheckbox(checked: Boolean, onClick: () -> Unit) {
     }
 }
 
-private fun Task.slot(): DaySlot {
+// Dropping a task where it already sits must not retime it: a 21:00 reminder dragged back into
+// Evening stays at 21:00 instead of snapping to that slot's default hour. The slot's hour is only
+// applied when the task actually lands somewhere else, or had no time to preserve.
+internal fun Task.dueAtForSlot(date: LocalDate, slot: DaySlot): Long {
+    val time = if (hasDueTime && slot() == slot) {
+        Instant.ofEpochMilli(requireNotNull(dueAt)).atZone(ZoneId.systemDefault()).toLocalTime()
+    } else {
+        slot.scheduledTime
+    }
+    return date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+}
+
+internal fun Task.slot(): DaySlot {
     if (!hasDueTime) return DaySlot.Morning
     return when (Instant.ofEpochMilli(requireNotNull(dueAt)).atZone(ZoneId.systemDefault()).toLocalTime()) {
         in LocalTime.MIDNIGHT..<LocalTime.NOON -> DaySlot.Morning

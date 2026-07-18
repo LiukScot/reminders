@@ -98,12 +98,10 @@ class DayViewModel(
 
     internal fun moveTaskToSlot(task: Task, date: LocalDate, slot: DaySlot) {
         viewModelScope.launch {
-            val dueAt = date
-                .atTime(slot.scheduledTime)
-                .atZone(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli()
-            val updated = task.copy(dueAt = dueAt, hasDueTime = true)
+            val updated = task.copy(dueAt = task.dueAtForSlot(date, slot), hasDueTime = true)
+            // A drag that ends where it started still reports a drop — don't rewrite and
+            // reschedule a reminder that isn't actually moving.
+            if (updated == task) return@launch
             repository.updateTask(updated)
             reminderScheduler.schedule(updated)
         }
