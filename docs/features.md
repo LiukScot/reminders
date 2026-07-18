@@ -90,6 +90,8 @@ Checklist of everything Apple Reminders does, with a proposed priority.
 
 - [MVP] Full-text search across all reminders
 - [MVP] Home screen widget (today's list)
+- [v2] Wear OS companion app — voice capture, snooze, and a voice complication;
+  scope and screens in [wear-os.md](wear-os.md)
 - [skip] Siri / external assistant — decided in requirements.md: no reliable system
   assistant, in-app microphone is used instead
 

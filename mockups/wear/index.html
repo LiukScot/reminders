@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en" data-flow="ember">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reminders — Wear OS v1 mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Material Flow tokens (ember) ────────────────────────────────────────
+   Copied from the design system rather than linked: this file lives in
+   another repo and must open standalone from disk. */
+:root{
+  --flow-a:#ffc27f; --flow-b:#ff8f7f;
+  --accent-solid:#ffa98f; --accent-soft:#ffbca6; --text-on-accent:#2c150e;
+  --ink-base:#010102; --ink-bg:#030304;
+  --ink-1:#1c1c22; --ink-2:#232329; --ink-3:#2a2a31; --ink-4:#323239;
+  --text-strong:#f6f5fb; --text-body:#d9d7e3; --text-muted:#b0aebf; --text-faint:#7e7c8e;
+  --success:#7fd6a6; --warning:#f2c879; --danger:#ff8b8b;
+  --line-1:rgba(255,255,255,.06); --line-2:rgba(255,255,255,.10);
+  --accent-gradient:linear-gradient(135deg,var(--flow-a) 0%,var(--flow-b) 100%);
+  --accent-tint:color-mix(in srgb,var(--accent-solid) 16%,transparent);
+  --glow-accent:0 6px 20px color-mix(in srgb,var(--flow-a) 35%,transparent);
+  --font-sans:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+
+/* ── Page chrome ─────────────────────────────────────────────────────── */
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ink-base); color:var(--text-body);
+  font-family:var(--font-sans); padding:40px 24px 72px;
+}
+header{max-width:1240px;margin:0 auto 40px}
+h1{font-size:34px;line-height:38px;font-weight:800;letter-spacing:-.5px;color:var(--text-strong);margin:0 0 10px}
+header p{margin:0;max-width:62ch;color:var(--text-muted);font-size:15px;line-height:23px}
+header code{font-family:var(--font-mono);font-size:13px;color:var(--accent-solid)}
+h2{
+  max-width:1240px;margin:56px auto 22px;font-size:11px;line-height:14px;
+  font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);
+}
+.grid{
+  max-width:1240px;margin:0 auto;display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:40px 30px;
+}
+figure{margin:0}
+figcaption{margin-top:16px}
+.cap-n{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--accent-solid);letter-spacing:.02em}
+.cap-t{display:block;font-size:15px;line-height:19px;font-weight:600;color:var(--text-strong);margin-top:3px}
+.cap-d{display:block;font-size:13px;line-height:18px;color:var(--text-muted);margin-top:5px}
+
+/* ── The watch ───────────────────────────────────────────────────────────
+   426×426 at 320dpi is the real Pixel Watch 4 panel, read off the device —
+   so everything here is 1:1 with hardware pixels. */
+.watch{
+  width:426px;height:426px;border-radius:50%;position:relative;overflow:hidden;
+  background:var(--ink-bg);
+  box-shadow:0 0 0 12px #0b0b0d,0 0 0 13px rgba(255,255,255,.09),0 18px 42px rgba(0,0,0,.65);
+  transform:scale(.86);transform-origin:top left;margin-bottom:-52px;
+}
+.watch::after{ /* the bezel's own curvature, faint */
+  content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  box-shadow:inset 0 0 60px rgba(0,0,0,.55);
+}
+/* Round screens lose their corners, so centred layouts sit inside a circular
+   safe area. Kept tight — the panel is only 213dp wide and every pixel spent
+   on margin is one not spent on a tap target. */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center}
+.safe{padding:34px}
+
+.i{display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── Shared pieces ───────────────────────────────────────────────────── */
+.eyebrow{ /* labelSmall 12sp */
+  font-size:24px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;
+  color:var(--text-faint);
+}
+.mic-btn{
+  width:178px;height:178px;border-radius:50%;background:var(--accent-gradient);
+  color:var(--text-on-accent);display:grid;place-items:center;box-shadow:var(--glow-accent);
+}
+.hint{font-size:32px;line-height:38px;color:var(--text-muted);font-weight:500} /* bodyLarge 16sp */
+.pill{
+  display:inline-flex;align-items:center;gap:9px;padding:9px 19px;border-radius:999px;
+  background:var(--ink-2);font-size:28px;font-weight:600;color:var(--text-body); /* labelMedium 14sp */
+}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--flow-b)}
+.title-lg{font-size:40px;line-height:46px;font-weight:700;letter-spacing:-.4px;color:var(--text-strong)}
+.meta{display:flex;align-items:center;gap:12px;font-size:28px;color:var(--text-body)} /* bodyMedium 14sp */
+.meta svg{color:var(--accent-solid);flex:none}
+.cta{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  height:72px;padding:0 38px;border-radius:999px;background:var(--accent-gradient);
+  color:var(--text-on-accent);font-size:30px;font-weight:700;box-shadow:var(--glow-accent); /* labelLarge */
+}
+.icon-btn{
+  width:64px;height:64px;border-radius:50%;background:var(--ink-2);color:var(--text-body);
+  display:grid;place-items:center;flex:none;
+}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+/* Rotary scroll indicator — the arc Wear draws on the right edge. Every
+   scrollable screen shows it, because a Wear list that ignores the crown is
+   broken on half the hardware. */
+.rsb{position:absolute;top:50%;right:8px;transform:translateY(-50%);width:5px;height:170px;
+  border-radius:999px;background:rgba(255,255,255,.10)}
+.rsb i{position:absolute;left:0;width:5px;border-radius:999px;background:var(--accent-solid)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Reminders on Wear OS — v1</h1>
+  <p>Nine screens, drawn at <code>426×426</code> — the real Pixel Watch 4 panel at 320&nbsp;dpi, so these are hardware pixels, not a guess. Ember flow accent, Material&nbsp;Flow ink. Scope and rationale live in <code>docs/wear-os.md</code>; the build is tracked in issue&nbsp;#39.</p>
+  <p style="margin-top:10px">Type sizes come from Wear&nbsp;Material&nbsp;3's scale, doubled: at 320&nbsp;dpi one <code>sp</code> is two pixels, so <code>bodyLarge</code>&nbsp;16sp is 32&nbsp;px here. An earlier pass sized the text by eye and landed near 9&nbsp;sp — legible on a monitor, too small on a wrist. Read a value off this page and halve it to get the <code>sp</code> the code should use.</p>
+</header>
+
+<h2>Voice capture</h2>
+<div class="grid">
+
+  <!-- 1 · IDLE ─────────────────────────────────────────────────────────── -->
+  <figure>
+    <div class="watch"><div class="screen safe" style="justify-content:center;gap:28px">
+      <div class="mic-btn">
+        <svg class="i" width="76" height="76" viewBox="0 0 24 24" style="stroke-width:1.9"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
+      </div>
+      <div class="hint">Tap to speak</div>
+    </div></div>
+    <figcaption><span class="cap-n">01</span><span class="cap-t">Voice — Idle</span>
+      <span class="cap-d">The launcher icon and the complication both land here. No home screen precedes it: in v1 idle voice <em>is</em> the app, so the button takes the room a home screen would have.</span></figcaption>
+  </figure>
+
+  <!-- 2 · LISTENING ────────────────────────────────────────────────────── -->
+  <figure>
+    <div class="watch"><div class="screen safe" style="justify-content:space-between;padding-top:30px;padding-bottom:26px">
+      <div class="pill"><span class="dot"></span>Listening</div>
+      <div style="font-size:32px;line-height:40px;font-weight:600;color:var(--text-strong);text-align:center">
+        Call mum tomorrow<br>at six<span style="color:var(--flow-b)">▌</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <svg class="i" width="44" height="44" viewBox="0 0 24 24" style="color:var(--accent-solid);stroke-width:2.4">
+          <path d="M2 12h2"/><path d="M6 8v8"/><path d="M10 4v16"/><path d="M14 7v10"/><path d="M18 10v4"/><path d="M22 12h0"/>
+        </svg>
+        <div class="icon-btn" style="background:var(--accent-gradient);color:var(--text-on-accent)">
+          <svg class="i" width="26" height="26" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" stroke="none"/></svg>
+        </div>
+      </div>
+    </div></div>
+    <figcaption><span class="cap-n">02</span><span class="cap-t">Voice — Listening</span>
+      <span class="cap-d">Partial transcript grows as you speak, at a size readable at arm's length with a live level meter beside it. Tap the square to finish early; silence ends it on its own.</span></figcaption>
+  </figure>
+
+  <!-- 3 · PROCESSING ───────────────────────────────────────────────────── -->
+  <figure>
+    <div class="watch">
+      <!-- Wear's indeterminate progress rides the bezel, not a centred spinner:
+           on a round screen the edge is the only place with room to spare. -->
+      <svg width="426" height="426" viewBox="0 0 426 426" style="position:absolute;inset:0">
+        <circle cx="213" cy="213" r="199" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="8"/>
+        <circle cx="213" cy="213" r="199" fill="none" stroke="url(#g3)" stroke-width="8"
+                stroke-linecap="round" stroke-dasharray="330 920" transform="rotate(-64 213 213)"/>
+        <defs><linearGradient id="g3" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ffc27f"/><stop offset="1" stop-color="#ff8f7f"/>
+        </linearGradient></defs>
+      </svg>
+      <div class="screen safe" style="justify-content:center;gap:22px;text-align:center">
+        <div style="font-size:28px;line-height:36px;color:var(--text-faint)">“Call mum tomorrow at six”</div>
+        <div style="font-size:28px;font-weight:600;color:var(--text-strong)">Reading that back…</div>
+      </div>
+    </div>
+    <figcaption><span class="cap-n">03</span><span class="cap-t">Voice — Processing</span>
+      <span class="cap-d">Transcript frozen, relayed to the phone, provider call in flight. The arc is indeterminate — the wait is someone else's network.</span></figcaption>
+  </figure>
+
+  <!-- 4 · RESULT ───────────────────────────────────────────────────────── -->
+  <figure>
+    <div class="watch"><div class="screen safe" style="justify-content:center;gap:16px;padding-top:32px;padding-bottom:24px">
+      <div class="eyebrow">New reminder</div>
+      <div class="title-lg" style="text-align:center">Call mum</div>
+      <div style="display:flex;flex-direction:column;gap:9px;align-items:center">
+        <div class="meta">
+          <svg class="i" width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span>Tomorrow, <span class="mono">18:00</span></span>
+        </div>
+        <div class="meta">
+          <svg class="i" width="20" height="20" viewBox="0 0 24 24"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></svg>
+          <span>Personal</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:8px">
+        <div class="icon-btn">
+          <svg class="i" width="25" height="25" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </div>
+        <div class="cta">
+          <svg class="i" width="24" height="24" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M20 6 9 17l-5-5"/></svg>Save
+        </div>
+        <div class="icon-btn">
+          <svg class="i" width="25" height="25" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </div>
+      </div>
+    </div></div>
+    <figcaption><span class="cap-n">04</span><span class="cap-t">Voice — Result</span>
+      <span class="cap-d">What the provider parsed, before it is written. Save is the wide target; retry and discard flank it as icons, since both are recoverable.</span></figcaption>
+  </figure>
+
+  <!-- 5 · BLOCKED ──────────────────────────────────────────────────────── -->
+  <figure>
+    <div class="watch"><div class="screen safe" style="justify-content:center;gap:20px;text-align:center">
+      <div style="width:84px;height:84px;border-radius:50%;background:var(--accent-tint);color:var(--warning);display:grid;place-items:center">
+        <svg class="i" width="40" height="40" viewBox="0 0 24 24"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/><path d="m2 2 20 20"/></svg>
+      </div>
+      <div style="font-size:32px;line-height:38px;font-weight:700;color:var(--text-strong)">Microphone off</div>
+      <div style="font-size:28px;line-height:36px;color:var(--text-muted)">Allow mic access to<br>create reminders by voice</div>
+      <div class="cta" style="height:64px;padding:0 34px;font-size:28px">Allow</div>
+    </div></div>
+    <figcaption><span class="cap-n">05</span><span class="cap-t">Voice — Blocked</span>
+      <span class="cap-d">One layout for every dead end — mic denied, no AI key on the phone, provider error, phone unreachable. Icon, cause, and the one action that helps. Never a bare error code.</span></figcaption>
+  </figure>
+</div>
+
+<h2>Snooze</h2>
+<div class="grid">
+
+  <!-- 6 · NOTIFICATION ─────────────────────────────────────────────────── -->
+  <figure>
+    <div class="watch"><div class="screen safe" style="justify-content:center;gap:16px;text-align:center">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--accent-tint);color:var(--accent-solid);display:grid;place-items:center">
+        <svg class="i" width="31" height="31" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+      </div>
+      <div class="title-lg">Call mum</div>
+      <div class="mono" style="font-size:28px;color:var(--text-muted)">18:00</div>
+      <div style="display:flex;gap:16px;margin-top:10px">
+        <div class="icon-btn" style="width:78px;height:78px;background:var(--accent-gradient);color:var(--text-on-accent)">
+          <svg class="i" width="33" height="33" viewBox="0 0 24 24" style="stroke-width:2.3"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <div class="icon-btn" style="width:78px;height:78px">
+          <svg class="i" width="33" height="33" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/></svg>
+        </div>
+      </div>
+    </div></div>
+    <figcaption><span class="cap-n">06</span><span class="cap-t">Reminder notification</span>
+      <span class="cap-d">Posted by the watch app, not bridged from the phone — a bridged action would run over there and open the picker on the wrong device. Both targets are 78px: this gets tapped mid-stride, without looking.</span></figcaption>
+  </figure>
+
+  <!-- 7 · SNOOZE PICKER ────────────────────────────────────────────────── -->
+  <figure>
+    <div class="watch">
+      <div class="screen" style="padding:26px 0 0">
+        <div class="eyebrow" style="margin-bottom:10px">Snooze</div>
+        <!-- Curved list, the way Wear's ScalingLazyColumn renders it: rows
+             shrink and fade toward the top and bottom of the circle. Each
+             width is the chord available at that row's height — a row wider
+             than its chord would be clipped by the bezel on real glass. -->
+        <div style="width:100%;display:flex;flex-direction:column;gap:5px;align-items:center">
+          <div style="width:74%;height:56px;border-radius:999px;background:var(--ink-1);display:flex;align-items:center;justify-content:space-between;padding:0 24px;opacity:.55">
+            <span style="font-size:28px;font-weight:600;color:var(--text-body);white-space:nowrap">+15 min</span>
+            <span class="mono" style="font-size:24px;color:var(--text-faint)">18:15</span>
+          </div>
+          <div style="width:88%;height:66px;border-radius:999px;background:var(--ink-1);display:flex;align-items:center;justify-content:space-between;padding:0 24px">
+            <span style="font-size:32px;font-weight:600;color:var(--text-strong);white-space:nowrap">+1 hour</span>
+            <span class="mono" style="font-size:28px;color:var(--text-muted)">19:00</span>
+          </div>
+          <div style="width:94%;height:74px;border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--flow-a) 26%,var(--ink-1)) 0%,var(--ink-1) 100%);display:flex;align-items:center;justify-content:space-between;padding:0 24px;border:1px solid var(--line-2)">
+            <span style="font-size:32px;font-weight:700;color:var(--text-strong);white-space:nowrap">Later</span>
+            <span class="mono" style="font-size:28px;color:var(--accent-solid)">21:00</span>
+          </div>
+          <div style="width:84%;height:66px;border-radius:999px;background:var(--ink-1);display:flex;align-items:center;justify-content:space-between;padding:0 24px">
+            <span style="font-size:32px;font-weight:600;color:var(--text-strong);white-space:nowrap">Tomorrow</span>
+            <span class="mono" style="font-size:28px;color:var(--text-muted)">18:00</span>
+          </div>
+          <div style="width:54%;height:46px;border-radius:999px;background:var(--ink-1);display:flex;align-items:center;justify-content:center;padding:0 16px;opacity:.4">
+            <span style="font-size:26px;font-weight:600;color:var(--text-body);white-space:nowrap">This weekend</span>
+          </div>
+        </div>
+      </div>
+      <div class="rsb"><i style="top:28px;height:62px"></i></div>
+    </div>
+    <figcaption><span class="cap-n">07</span><span class="cap-t">Snooze picker</span>
+      <span class="cap-d">Every option the phone offers, in the phone's order, from the same <code style="font-family:var(--font-mono);font-size:12px">snoozeChoices</code> — no reduced watch set. Crown-scrollable; the arc on the right is the rotary position.</span></figcaption>
+  </figure>
+
+  <!-- 8 · PICK DATE & TIME ─────────────────────────────────────────────── -->
+  <figure>
+    <div class="watch"><div class="screen" style="justify-content:center;padding:0 34px">
+      <div class="eyebrow" style="position:absolute;top:42px;left:0;right:0;text-align:center">Pick a time</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%">
+        <!-- Two rotary columns. The crown drives whichever is selected; tapping
+             the other hands the crown over. -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <span class="mono" style="font-size:26px;color:var(--text-faint);opacity:.45">20</span>
+          <span class="mono" style="font-size:58px;font-weight:600;color:var(--text-on-accent);background:var(--accent-gradient);border-radius:18px;padding:4px 20px">21</span>
+          <span class="mono" style="font-size:26px;color:var(--text-faint);opacity:.45">22</span>
+        </div>
+        <span class="mono" style="font-size:44px;color:var(--text-faint);padding-bottom:6px">:</span>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <span class="mono" style="font-size:26px;color:var(--text-faint);opacity:.45">15</span>
+          <span class="mono" style="font-size:58px;font-weight:600;color:var(--text-strong);border-radius:18px;padding:4px 20px;border:1px solid var(--line-2)">30</span>
+          <span class="mono" style="font-size:26px;color:var(--text-faint);opacity:.45">45</span>
+        </div>
+      </div>
+      <div class="icon-btn" style="position:absolute;bottom:28px;width:68px;height:68px;background:var(--accent-gradient);color:var(--text-on-accent)">
+        <svg class="i" width="30" height="30" viewBox="0 0 24 24" style="stroke-width:2.3"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+    </div></div>
+    <figcaption><span class="cap-n">08</span><span class="cap-t">Snooze — pick date &amp; time</span>
+      <span class="cap-d">Only reached from the last option in 07. Date first on the same layout, then this. The escape hatch for the case the presets miss — deliberately the slowest path.</span></figcaption>
+  </figure>
+
+  <!-- 9 · CONFIRMATION ─────────────────────────────────────────────────── -->
+  <figure>
+    <div class="watch"><div class="screen safe" style="justify-content:center;gap:26px;text-align:center">
+      <div style="width:118px;height:118px;border-radius:50%;background:var(--accent-gradient);color:var(--text-on-accent);display:grid;place-items:center;box-shadow:var(--glow-accent)">
+        <svg class="i" width="56" height="56" viewBox="0 0 24 24" style="stroke-width:2.6"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <div>
+        <div style="font-size:32px;font-weight:600;color:var(--text-muted)">Snoozed to</div>
+        <div class="mono" style="font-size:48px;font-weight:600;color:var(--text-strong);margin-top:4px">21:00</div>
+      </div>
+    </div></div>
+    <figcaption><span class="cap-n">09</span><span class="cap-t">Snooze — confirmation</span>
+      <span class="cap-d">Held about a second, then the app closes itself. It states the resulting time, not “Done” — the whole point of the interaction was which time you got.</span></figcaption>
+  </figure>
+</div>
+
+<h2>Complication</h2>
+<div class="grid">
+  <figure>
+    <div class="watch">
+      <!-- A complication is a data slot, not a page: what it needs is assets in
+           the shapes the watch face asks for. Shown on a stand-in face. -->
+      <div class="screen" style="justify-content:center;gap:4px">
+        <div class="mono" style="font-size:86px;font-weight:500;color:var(--text-strong);letter-spacing:-2px">10:09</div>
+        <div style="font-size:24px;color:var(--text-faint);margin-top:-4px">Sat, 18 Jul</div>
+        <div style="display:flex;gap:16px;margin-top:26px;align-items:center">
+          <!-- SMALL_IMAGE / MONOCHROMATIC_IMAGE: icon only -->
+          <div style="width:58px;height:58px;border-radius:50%;background:var(--accent-gradient);color:var(--text-on-accent);display:grid;place-items:center;box-shadow:var(--glow-accent)">
+            <svg class="i" width="28" height="28" viewBox="0 0 24 24"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
+          </div>
+          <!-- SHORT_TEXT: icon + up to 7 characters -->
+          <div style="height:58px;padding:0 20px;border-radius:999px;background:var(--ink-1);border:1px solid var(--line-2);display:flex;align-items:center;gap:9px">
+            <svg class="i" width="21" height="21" viewBox="0 0 24 24" style="color:var(--accent-solid)"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
+            <span style="font-size:26px;font-weight:600;color:var(--text-strong)">Speak</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption><span class="cap-n">10</span><span class="cap-t">Complication — assets</span>
+      <span class="cap-d">Not a screen. Two renderings on a stand-in watch face: icon-only for image slots, and icon + label for short-text slots. A tap goes straight to 01, skipping any launcher.</span></figcaption>
+  </figure>
+</div>
+
+</body>
+</html>
